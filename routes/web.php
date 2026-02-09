@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Admin\RoleController;
@@ -8,30 +9,65 @@ use App\Http\Controllers\Admin\UserRoleController;
 
 /*
 |--------------------------------------------------------------------------
-| Web Routes
+| Public Routes
 |--------------------------------------------------------------------------
 */
 
 Route::get('/', function () {
-    return 'OTT Platform Running';
+    return view('welcome');
 });
 
 /*
 |--------------------------------------------------------------------------
-| Admin RBAC UI
+| Breeze Profile Routes
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth'])->prefix('admin')->group(function(){
+Route::middleware('auth')->group(function () {
 
-    Route::get('/roles', [RoleController::class,'index']);
-    Route::post('/roles', [RoleController::class,'store']);
-    Route::post('/roles/{id}/permissions', [RoleController::class,'attachPermissions']);
+    Route::get('/profile', [ProfileController::class, 'edit'])
+        ->name('profile.edit');
 
-    Route::get('/permissions', [PermissionController::class,'index']);
-    Route::post('/permissions', [PermissionController::class,'store']);
+    Route::patch('/profile', [ProfileController::class, 'update'])
+        ->name('profile.update');
 
-    Route::get('/users', [UserRoleController::class,'index']);
-    Route::post('/users/{id}/roles', [UserRoleController::class,'assign']);
-
+    Route::delete('/profile', [ProfileController::class, 'destroy'])
+        ->name('profile.destroy');
 });
+
+/*
+|--------------------------------------------------------------------------
+| Admin RBAC UI (Protected)
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware(['auth','permission:manage_users'])
+    ->prefix('admin')
+    ->group(function(){
+
+        // Dashboard
+        Route::get('/dashboard', function(){
+            return view('admin.dashboard');
+        });
+
+        // Roles
+        Route::get('/roles', [RoleController::class,'index']);
+        Route::post('/roles', [RoleController::class,'store']);
+        Route::post('/roles/{id}/permissions', [RoleController::class,'attachPermissions']);
+
+        // Permissions
+        Route::get('/permissions', [PermissionController::class,'index']);
+        Route::post('/permissions', [PermissionController::class,'store']);
+
+        // Users
+        Route::get('/users', [UserRoleController::class,'index']);
+        Route::post('/users/{id}/roles', [UserRoleController::class,'assign']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Auth Routes (Breeze)
+|--------------------------------------------------------------------------
+*/
+
+require __DIR__.'/auth.php';
