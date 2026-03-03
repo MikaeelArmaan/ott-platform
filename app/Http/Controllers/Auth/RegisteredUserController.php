@@ -40,7 +40,11 @@ class RegisteredUserController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
         ]);
-
+        
+        $user->profiles()->create([
+            'name' => $user->name,
+            'maturity_level' => 'U'
+        ]);
         event(new Registered($user));
 
         Auth::login($user);

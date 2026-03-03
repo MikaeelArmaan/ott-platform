@@ -6,16 +6,27 @@
 
 <div class="card">
 <form method="POST" action="/admin/permissions">
-@csrf
-<input name="name" placeholder="Permission name">
-<button>Add Permission</button>
+    @csrf
+    <input name="name" placeholder="New permission">
+    <button>Add Permission</button>
 </form>
 </div>
 
-@foreach($permissions as $p)
 <div class="card">
-{{ $p->name }}
+<table class="datatable">
+    <thead>
+        <tr>
+            <th>Permission Name</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach($permissions as $p)
+        <tr>
+            <td>{{ $p->name }}</td>
+        </tr>
+        @endforeach
+    </tbody>
+</table>
 </div>
-@endforeach
 
 @endsection

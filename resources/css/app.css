@@ -1,3 +1,38 @@
+@import "swiper/css";
+@import "swiper/css/pagination";
+@import "swiper/css/effect-fade";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+.dataTables_wrapper,
+.dataTables_wrapper label,
+.dataTables_wrapper input,
+.dataTables_wrapper select {
+    color: white;
+}
+
+.dataTables_wrapper .dataTables_filter input,
+.dataTables_wrapper .dataTables_length select {
+    background: #181818;
+    border: 1px solid #333;
+    color: white;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    color: white !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background: #e50914 !important;
+    border: none !important;
+}

@@ -12,7 +12,7 @@ class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
-
+    public $timestamps = true;
     /**
      * The attributes that are mass assignable.
      *
@@ -62,6 +62,23 @@ class User extends Authenticatable
         return $this->roles()
             ->whereHas('permissions', fn($q)=>$q->where('name',$permission))
             ->exists();
+    }
+
+    public function isConsumer(): bool
+    {
+        return ! $this->hasRole('admin') && ! $this->hasRole('staff');
+    }
+    public function watchlist()
+    {
+        return $this->belongsToMany(
+            Content::class,
+            'watchlists'
+        )->withTimestamps();
+    }
+
+    public function profiles()
+    {
+        return $this->hasMany(Profile::class);
     }
 
 }

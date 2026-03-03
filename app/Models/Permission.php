@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Permission extends Model
 {
+    public $timestamps = true;
     protected $fillable = ['name'];
 
     public function roles()

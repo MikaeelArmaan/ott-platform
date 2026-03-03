@@ -6,9 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class Watchlist extends Model
 {
-    public $timestamps = false;
+    public $timestamps = true;
+    protected $fillable = [
+        'user_id',
+        'content_id'
+    ];
 
-    protected $fillable = ['profile_id','content_id','created_at'];
-
-    protected $casts = ['created_at' => 'datetime'];
+    public function content()
+    {
+        return $this->belongsTo(Content::class);
+    }
 }

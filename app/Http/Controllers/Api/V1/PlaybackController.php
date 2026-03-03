@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\VideoAsset;
 use App\Models\WatchHistory;
 use Illuminate\Http\Request;
+use App\Models\PlaybackProgress;
 
 class PlaybackController extends Controller
 {
@@ -30,30 +31,22 @@ class PlaybackController extends Controller
         ]);
     }
 
-    public function progress(Request $r)
+    public function progress(Request $request)
     {
-        $data = $r->validate([
-            'profile_id' => 'required|integer',
-            'content_id' => 'required|integer',
-            'episode_id' => 'nullable|integer',
-            'position_seconds' => 'required|integer',
-            'duration_seconds' => 'required|integer',
+        $data = $request->validate([
+            'content_id' => 'required|exists:contents,id',
+            'position_seconds'   => 'required|integer|min:0',
+            'duration_seconds'   => 'nullable|integer|min:0',
         ]);
 
-        $completed = $data['duration_seconds'] > 0
-            && ($data['position_seconds'] / $data['duration_seconds']) >= 0.95;
-
-        WatchHistory::updateOrCreate(
+        PlaybackProgress::updateOrCreate(
             [
-                'profile_id' => $data['profile_id'],
+                'user_id' => auth()->id()??1,
                 'content_id' => $data['content_id'],
-                'episode_id' => $data['episode_id'] ?? null,
             ],
             [
                 'position_seconds' => $data['position_seconds'],
-                'duration_seconds' => $data['duration_seconds'],
-                'completed' => $completed,
-                'last_watched_at' => now(),
+                'duration_seconds' => $data['duration_seconds'] ?? 0,
             ]
         );
 

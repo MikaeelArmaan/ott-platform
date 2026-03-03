@@ -23,6 +23,12 @@ Route::prefix('v1')->group(function () {
     Route::post('/auth/register', [AuthController::class, 'register']);
     Route::post('/auth/login', [AuthController::class, 'login']);
 
+    /* ---------------- PLAYBACK ---------------- */
+
+    Route::post('/playback/start', [PlaybackController::class, 'start']);
+    Route::post('/playback/progress', [PlaybackController::class, 'progress']);
+
+
     Route::middleware('auth:sanctum')->group(function () {
 
         Route::post('/auth/logout', [AuthController::class, 'logout']);
@@ -52,11 +58,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/watchlist', [WatchlistController::class, 'store']);
         Route::delete('/watchlist/{contentId}', [WatchlistController::class, 'destroy']);
 
-        /* ---------------- PLAYBACK ---------------- */
-
-        Route::post('/playback/start', [PlaybackController::class, 'start']);
-        Route::post('/playback/progress', [PlaybackController::class, 'progress']);
-
+        
         /* ---------------- ADMIN (RBAC PROTECTED) ---------------- */
 
         Route::middleware('permission:upload_content')->group(function () {

@@ -10,7 +10,7 @@ return new class extends Migration {
       $t->id();
       $t->unsignedBigInteger('profile_id');
       $t->unsignedBigInteger('content_id');
-      $t->timestamp('created_at')->useCurrent();
+      $t->timestamps();
       $t->unique(['profile_id','content_id']);
     });
   }

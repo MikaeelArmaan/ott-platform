@@ -17,6 +17,7 @@ return new class extends Migration {
       $t->timestamp('last_watched_at')->useCurrent();
       $t->unique(['profile_id','content_id','episode_id']);
       $t->index(['profile_id','completed']);
+      $t->timestamps();
     });
   }
   public function down(): void { Schema::dropIfExists('watch_histories'); }
