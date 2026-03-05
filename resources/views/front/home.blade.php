@@ -63,10 +63,12 @@ $bg = $f->backdrop_url
 </div>
 
 @auth
+@if(auth()->user()->isConsumer())
 @php
 $profile = auth()->user()->profiles()->first();
-$watchlist = $profile->watchlist()->latest()->take(12)->get();
+$watchlist = $profile?->watchlist()->latest()->take(12)->get() ?? collect();
 @endphp
+
 
 @if($watchlist->count())
 <div class="px-6 md:px-20 py-6 bg-black">
@@ -90,6 +92,7 @@ $img = $c->thumbnail_url ?: $c->poster_url;
 
 </div>
 </div>
+@endif
 @endif
 @endauth
 

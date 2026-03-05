@@ -90,24 +90,28 @@ $bg = $content->backdrop_url
 
         {{-- WATCHLIST --}}
         @auth
-        @php
-          $profile = auth()->user()->profiles()->first();
-          $inWatchlist = \App\Models\Watchlist::where('profile_id',$profile->id)
-                            ->where('content_id',$content->id)
-                            ->exists();
-        @endphp
+          @if(auth()->user()->isConsumer())
 
-        <form method="POST" action="{{ route('watchlist.toggle') }}">
-          @csrf
-          <input type="hidden" name="content_id" value="{{ $content->id }}">
+          @php
+              $profile = auth()->user()->profiles()->first();
+              $inWatchlist = $profile
+                  ? $profile->watchlist()
+                      ->where('content_id', $content->id)
+                      ->exists()
+                  : false;
+          @endphp
 
-          <button class="px-5 py-3 rounded font-semibold transition
-            {{ $inWatchlist
-              ? 'bg-gray-700 hover:bg-gray-600'
-              : 'bg-gray-800 hover:bg-gray-700' }}">
-            {{ $inWatchlist ? '✓ In Watchlist' : '+ Watchlist' }}
-          </button>
-        </form>
+          <form method="POST" action="{{ route('watchlist.toggle') }}">
+              @csrf
+              <input type="hidden" name="content_id" value="{{ $content->id }}">
+
+              <button
+                  class="bg-gray-800 text-white px-3 py-1 rounded text-xs">
+                  {{ $inWatchlist ? '✓' : '+' }}
+              </button>
+          </form>
+
+          @endif
         @endauth
 
         {{-- BACK --}}

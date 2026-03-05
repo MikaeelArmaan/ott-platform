@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Models\PlaybackProgress;
 use App\Models\Episode;
 use App\Models\Season;
+use App\Models\WatchHistory;
 
 class BrowseController extends Controller
 {

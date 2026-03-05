@@ -3,7 +3,19 @@
 @section('title','Watch - '.$content->title. (isset($episode) ? ' • '.$episode->title : ''))
 
 @section('content')
+@php
+  // If episode exists, use episode video asset; else use movie asset/content video
+  $asset = isset($episode) ? $episode->videoAsset : $content->videoAsset;
 
+  $hlsUrl = ($asset && $asset->status === 'ready' && $asset->hls_master_url)
+          ? asset('storage/'.$asset->hls_master_url)
+          : null;
+
+  $mp4Url = null;
+  if (!isset($episode)) {
+      $mp4Url = $content->video_url ? asset('storage/'.$content->video_url) : null;
+  }
+@endphp
 <div class="fixed inset-0 bg-black flex items-center justify-center">
 
   {{-- BACK --}}
