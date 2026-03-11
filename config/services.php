@@ -34,5 +34,8 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+    'tmdb' => [
+        'key' =>'14da42ff572197053774e1eefbac8dbc',
+    ],
 
 ];

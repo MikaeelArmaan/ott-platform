@@ -1,4 +1,6 @@
 import './bootstrap';
+import Swal from 'sweetalert2';
+window.Swal = Swal;
 
 import Alpine from 'alpinejs';
 
@@ -6,5 +8,12 @@ window.Alpine = Alpine;
 
 Alpine.start();
 // ✅ ADD THIS
-import './hero-swiper';
-import './hls-init';
+import './modules/hero-swiper';
+import './modules/hls-init';
+import './utils/toast';
+import './modules/wishlist';
+import './global-loader';
+import './modules/row-swiper';
+import './modules/load-more';
+import './modules/datatable-init';
+import './modules/content';

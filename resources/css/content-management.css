@@ -1,0 +1,3 @@
+.contentManagement input:where([type='checkbox']):checked {
+    background-image: none !important;
+}

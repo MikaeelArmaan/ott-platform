@@ -51,19 +51,33 @@ player.addEventListener('loadedmetadata', () => {
 
 // progress save with episode_id (matches your PlaybackController)
 setInterval(() => {
-  if (!player.paused && player.duration && !isNaN(player.duration)) {
-    fetch('/api/v1/playback/progress', {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json', 'Accept':'application/json' },
-      body: JSON.stringify({
-        profile_id: 1, // temporary
-        content_id: contentId,
-        episode_id: episodeId,
-        position_seconds: Math.floor(player.currentTime),
-        duration_seconds: Math.floor(player.duration)
-      })
-    });
-  }
+
+    if (!player.paused && player.duration) {
+
+        fetch('/api/v1/playback/progress', {
+
+            method: 'POST',
+
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+
+            body: JSON.stringify({
+
+                profile_id: 1,
+                content_id: contentId,
+                episode_id: {{ $episode->id ?? 'null' }},
+
+                position_seconds: Math.floor(player.currentTime),
+                duration_seconds: Math.floor(player.duration)
+
+            })
+
+        });
+
+    }
+
 }, 5000);
 
 window.addEventListener('beforeunload', () => { if (window.__hls) window.__hls.destroy(); });

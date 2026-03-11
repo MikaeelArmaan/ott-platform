@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\CatalogController;
 use App\Http\Controllers\Api\V1\PlaybackController;
 use App\Http\Controllers\Api\V1\WatchlistController;
 use App\Http\Controllers\Admin\ContentController;
+use App\Http\Controllers\Api\V1\WatchHistoryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -27,7 +28,7 @@ Route::prefix('v1')->group(function () {
 
     Route::post('/playback/start', [PlaybackController::class, 'start']);
     Route::post('/playback/progress', [PlaybackController::class, 'progress']);
-
+    Route::post('/watch-history', [WatchHistoryController::class, 'update']);
 
     Route::middleware('auth:sanctum')->group(function () {
 

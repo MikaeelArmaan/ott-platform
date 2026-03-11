@@ -18,7 +18,7 @@ class WatchlistController extends Controller
             ->latest()
             ->get();
 
-        return view('front.watchlist', compact('items'));
+        return view('front.pages.watchlist', compact('items'));
     }
 
     public function toggle(Request $request)
@@ -27,22 +27,34 @@ class WatchlistController extends Controller
             'content_id' => 'required|exists:contents,id'
         ]);
 
-        $profile = auth()->user()
-            ->profiles()
-            ->first();
+        $profile = auth()->user()->profiles()->first();
 
         if ($profile->watchlist()->where('content_id',$request->content_id)->exists()) {
 
-            // REMOVE
             $profile->watchlist()->detach($request->content_id);
+
+            return response()->json([
+                'status' => 'removed'
+            ]);
 
         } else {
 
-            // ADD
             $profile->watchlist()->attach($request->content_id);
 
+            return response()->json([
+                'status' => 'added'
+            ]);
         }
+    }
 
-        return back();
+    public function partial()
+    {
+        $profile = auth()->user()->profiles()->first();
+        $watchlist = $profile
+            ->watchlist()
+            ->latest()
+            ->take(12)
+            ->get();
+        return view('front.partials.watchlist-row', compact('watchlist'));
     }
 }

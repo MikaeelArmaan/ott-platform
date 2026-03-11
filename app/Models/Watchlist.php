@@ -3,14 +3,27 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Watchlist extends Model
 {
-    public $timestamps = true;
+    use HasFactory;
+
     protected $fillable = [
-        'user_id',
+        'profile_id',
         'content_id'
     ];
+
+    /*
+    |--------------------------------------------------------------------------
+    | Relationships
+    |--------------------------------------------------------------------------
+    */
+
+    public function profile()
+    {
+        return $this->belongsTo(Profile::class);
+    }
 
     public function content()
     {

@@ -34,22 +34,60 @@ class PlaybackController extends Controller
     public function progress(Request $request)
     {
         $data = $request->validate([
-            'content_id' => 'required|exists:contents,id',
-            'position_seconds'   => 'required|integer|min:0',
-            'duration_seconds'   => 'nullable|integer|min:0',
+            'profile_id' => 'required|integer',
+            'content_id' => 'required|integer',
+            'episode_id' => 'nullable|integer',
+            'position_seconds' => 'required|integer',
+            'duration_seconds' => 'required|integer'
         ]);
 
-        PlaybackProgress::updateOrCreate(
+        $percent = 0;
+
+        if ($data['duration_seconds'] > 0) {
+            $percent = ($data['position_seconds'] / $data['duration_seconds']) * 100;
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | Playback Progress (Resume playback)
+    |--------------------------------------------------------------------------
+    */
+
+        \App\Models\PlaybackProgress::updateOrCreate(
             [
-                'user_id' => auth()->id()??1,
+                'profile_id' => $data['profile_id'],
                 'content_id' => $data['content_id'],
+                'episode_id' => $data['episode_id']
             ],
             [
                 'position_seconds' => $data['position_seconds'],
-                'duration_seconds' => $data['duration_seconds'] ?? 0,
+                'duration_seconds' => $data['duration_seconds'],
+                'updated_at' => now()
             ]
         );
 
-        return response()->json(['ok' => true]);
+        /*
+    |--------------------------------------------------------------------------
+    | Watch History (Continue watching + analytics)
+    |--------------------------------------------------------------------------
+    */
+
+        \App\Models\WatchHistory::updateOrCreate(
+            [
+                'profile_id' => $data['profile_id'],
+                'content_id' => $data['content_id'],
+                'episode_id' => $data['episode_id']
+            ],
+            [
+                'watch_time_seconds' => $data['position_seconds'],
+                'completion_percent' => $percent,
+                'completed' => $percent >= 90,
+                'watched_at' => now()
+            ]
+        );
+
+        return response()->json([
+            'status' => 'ok'
+        ]);
     }
 }

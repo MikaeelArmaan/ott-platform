@@ -3,29 +3,50 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Episode extends Model
 {
-    public $timestamps = true;
+    use HasFactory;
+
     protected $fillable = [
-        'season_id','episode_number','title','description',
-        'runtime_seconds','release_date','thumbnail_url','video_url','is_published'
+        'content_id',
+        'season_id',
+        'episode_number',
+        'title',
+        'description',
+        'duration',
+        'release_date',
+        'thumbnail',
+        'backdrop',
+        'is_published',
+        'published_at'
     ];
 
-    protected $casts = ['is_published' => 'boolean'];
+    protected $casts = [
+        'is_published' => 'boolean',
+        'release_date' => 'date',
+        'published_at' => 'datetime'
+    ];
+
+    /*
+    |--------------------------------------------------------------------------
+    | Relationships
+    |--------------------------------------------------------------------------
+    */
+
+    public function content()
+    {
+        return $this->belongsTo(Content::class);
+    }
 
     public function season()
     {
         return $this->belongsTo(Season::class);
     }
 
-    public function series()
+    public function videoAssets()
     {
-        return $this->season->series();
-    }
-
-    public function videoAsset()
-    {
-        return $this->hasOne(VideoAsset::class, 'episode_id');
+        return $this->hasMany(VideoAsset::class);
     }
 }

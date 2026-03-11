@@ -9,6 +9,8 @@
     "devDependencies": {
         "@tailwindcss/forms": "^0.5.2",
         "@tailwindcss/vite": "^4.0.0",
+        "@types/alpinejs": "^3.13.11",
+        "@types/nprogress": "^0.2.3",
         "alpinejs": "^3.4.2",
         "autoprefixer": "^10.4.24",
         "axios": "^1.11.0",
@@ -20,6 +22,8 @@
     },
     "dependencies": {
         "hls.js": "^1.6.15",
+        "nprogress": "^0.2.0",
+        "sweetalert2": "^11.26.21",
         "swiper": "^12.1.0"
     }
 }
