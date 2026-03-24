@@ -45,8 +45,8 @@ class Episode extends Model
         return $this->belongsTo(Season::class);
     }
 
-    public function videoAssets()
+    public function videoAsset()
     {
-        return $this->hasMany(VideoAsset::class);
+        return $this->hasOne(VideoAsset::class);
     }
 }

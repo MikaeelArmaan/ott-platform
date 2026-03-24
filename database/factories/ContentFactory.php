@@ -55,13 +55,13 @@ class ContentFactory extends Factory
                 ? $this->faker->numberBetween(5400, 9000)
                 : null,
 
-            'poster' => 'https://picsum.photos/400/600?random=' . $this->faker->numberBetween(1, 1000),
+            'poster_url' => 'https://picsum.photos/400/600?random=' . $this->faker->numberBetween(1, 1000),
 
-            'thumbnail' => 'https://picsum.photos/800/450?random=' . $this->faker->numberBetween(1, 1000),
+            'thumbnail_url' => 'https://picsum.photos/800/450?random=' . $this->faker->numberBetween(1, 1000),
 
-            'backdrop' => 'https://picsum.photos/1920/1080?random=' . $this->faker->numberBetween(1, 1000),
+            'backdrop_url' => 'https://picsum.photos/1920/1080?random=' . $this->faker->numberBetween(1, 1000),
 
-            'logo' => null,
+            'logo_url' => null,
 
             'imdb_rating' => $this->faker->randomFloat(1, 5, 9),
 

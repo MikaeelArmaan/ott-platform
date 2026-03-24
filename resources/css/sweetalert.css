@@ -1,0 +1,83 @@
+/* Modal background */
+
+.swal-dark-popup {
+    background: rgba(20, 20, 20, 0.35);
+    backdrop-filter: blur(20px);
+
+    border-radius: 16px;
+
+
+
+    box-shadow:
+        0 10px 35px rgba(0, 0, 0, 0.7),
+        0 0 10px rgba(229, 9, 20, 0.35),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.modal-border-error {
+    border: 1px solid #f27474;
+}
+
+.modal-border-warning {
+    border: 1px solid #f8bb86;
+}
+
+.modal-border-success {
+    border: 1px solid #a5dc86;
+}
+
+@keyframes swalGlassIn {
+    from {
+        transform: scale(.92);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.animate-swal-in {
+    animation: swalGlassIn .25s ease;
+}
+
+.swal2-container.swal2-backdrop-show {
+    backdrop-filter: blur(4px);
+    background: rgba(0, 0, 0, 0.55);
+}
+
+/* Title */
+
+.swal-dark-title {
+    color: #f4f4f5;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+/* Delete button */
+
+.swal-btn-delete {
+    background: #dc2626;
+    color: white;
+    padding: 8px 18px;
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.swal-btn-delete:hover {
+    background: #b91c1c;
+}
+
+/* Cancel button */
+
+.swal-btn-cancel {
+    background: #27272a;
+    color: #e4e4e7;
+    padding: 8px 18px;
+    border-radius: 6px;
+}
+
+.swal-btn-cancel:hover {
+    background: #3f3f46;
+}

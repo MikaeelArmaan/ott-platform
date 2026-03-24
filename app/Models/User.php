@@ -54,20 +54,33 @@ class User extends Authenticatable
 
     public function hasRole($role)
     {
-        return $this->roles()->where('name',$role)->exists();
+        return $this->roles()->where('name', $role)->exists();
     }
-
+    public function hasAnyRole(array $roles): bool
+    {
+        return $this->roles()->whereIn('name', $roles)->exists();
+    }
     public function hasPermission($permission)
     {
         return $this->roles()
-            ->whereHas('permissions', fn($q)=>$q->where('name',$permission))
+            ->whereHas('permissions', fn($q) => $q->where('name', $permission))
             ->exists();
+    }
+    public function isAdmin(): bool
+    {
+        return $this->hasAnyRole(['admin', 'super_admin']);
     }
 
     public function isConsumer(): bool
     {
-        return ! $this->hasRole('admin') && ! $this->hasRole('staff');
+        return $this->hasRole('user');
     }
+
+    public function canAccess($permission): bool
+    {
+        return $this->hasPermission($permission);
+    }
+    
     public function watchlist()
     {
         return $this->belongsToMany(
@@ -80,5 +93,4 @@ class User extends Authenticatable
     {
         return $this->hasMany(Profile::class);
     }
-
 }

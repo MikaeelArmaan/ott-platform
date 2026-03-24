@@ -95,7 +95,7 @@ $bg = $content->backdrop_url
 
         {{-- WATCHLIST --}}
         @auth
-        @if(auth()->check() && auth()->user()->isConsumer())
+        @if(auth()->check() )
 
         @php
         $profile = auth()->user()->profiles()->first();

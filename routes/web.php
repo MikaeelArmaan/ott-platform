@@ -6,6 +6,8 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\UserRoleController;
 use App\Http\Controllers\Admin\ContentController;
+use App\Http\Controllers\Admin\MediaController;
+use App\Http\Controllers\Admin\UploadController;
 use App\Http\Controllers\Web\BrowseController;
 use App\Http\Controllers\Web\WatchlistController;
 
@@ -26,7 +28,7 @@ Route::get('/search', [BrowseController::class, 'search'])->name('search');
 
 /*
 |--------------------------------------------------------------------------
-| Authenticated Consumer Routes
+| Authenticated Consumer Routes (OTT Users)
 |--------------------------------------------------------------------------
 */
 
@@ -41,12 +43,12 @@ Route::middleware(['auth', 'consumer'])->group(function () {
     Route::get('/watchlist/partial', [WatchlistController::class, 'partial'])
         ->name('watchlist.partial');
 
+    // ✅ FIXED (consistent naming)
     Route::get('/watch/{content}', [BrowseController::class, 'watch'])
         ->name('title.watch');
 
     Route::get('/watch/{content}/episode/{episode}', [BrowseController::class, 'watchEpisode'])
         ->name('title.watch.episode');
-
 });
 
 
@@ -66,18 +68,17 @@ Route::middleware('auth')->group(function () {
 
     Route::delete('/profile', [ProfileController::class, 'destroy'])
         ->name('profile.destroy');
-
 });
 
 
 /*
 |--------------------------------------------------------------------------
-| Admin RBAC Panel
+| Admin Panel (RBAC + CMS)
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth', 'permission:manage_users'])
-    ->prefix('admin')
+Route::prefix('admin')
+    ->middleware(['auth', 'admin']) // ✅ IMPORTANT CHANGE
     ->name('admin.')
     ->group(function () {
 
@@ -87,53 +88,84 @@ Route::middleware(['auth', 'permission:manage_users'])
         })->name('dashboard');
 
 
-        /* Roles */
-        Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
-        Route::post('/roles', [RoleController::class, 'store'])->name('roles.store');
-        Route::post('/roles/{id}/permissions', [RoleController::class, 'attachPermissions'])
-            ->name('roles.permissions');
+        /*
+        |--------------------------------------------------------------------------
+        | Role & Permission Management
+        |--------------------------------------------------------------------------
+        */
+
+        Route::middleware('permission:manage_users')->group(function () {
+
+            /* Roles */
+            Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
+            Route::post('/roles', [RoleController::class, 'store'])->name('roles.store');
+            Route::post('/roles/{id}/permissions', [RoleController::class, 'attachPermissions'])
+                ->name('roles.permissions');
+
+            /* Permissions */
+            Route::get('/permissions', [PermissionController::class, 'index'])->name('permissions.index');
+            Route::post('/permissions', [PermissionController::class, 'store'])->name('permissions.store');
+
+            /* Users */
+            Route::get('/users', [UserRoleController::class, 'index'])->name('users.index');
+            Route::post('/users/{id}/roles', [UserRoleController::class, 'assign'])->name('users.assign');
+        });
 
 
-        /* Permissions */
-        Route::get('/permissions', [PermissionController::class, 'index'])->name('permissions.index');
-        Route::post('/permissions', [PermissionController::class, 'store'])->name('permissions.store');
+        /*
+        |--------------------------------------------------------------------------
+        | Content Management (OTT CMS)
+        |--------------------------------------------------------------------------
+        */
 
+        Route::middleware('permission:manage_content')->group(function () {
 
-        /* Users */
-        Route::get('/users', [UserRoleController::class, 'index'])->name('users.index');
-        Route::post('/users/{id}/roles', [UserRoleController::class, 'assign'])->name('users.assign');
+            Route::resource('contents', ContentController::class);
 
+            /* Inline publish toggle */
+            Route::post(
+                '/contents/{content}/toggle',
+                [ContentController::class, 'togglePublish']
+            )
+                ->name('contents.togglePublish');
 
-        /* Content Management */
-        Route::resource('contents', ContentController::class);
+            /* Inline update */
+            Route::post(
+                '/contents/{content}/inline-update',
+                [ContentController::class, 'inlineUpdate']
+            )
+                ->name('contents.inlineUpdate');
 
-        /* Inline publish toggle */
-        Route::post('/contents/{content}/toggle-publish',
-            [ContentController::class, 'togglePublish'])
-            ->name('contents.togglePublish');
+            /* Seasons */
+            Route::post(
+                '/contents/{content}/seasons',
+                [ContentController::class, 'storeSeason']
+            )
+                ->name('seasons.store');
 
-        /* Inline field update (for title, rating etc) */
-        Route::post('/contents/{content}/inline-update',
-            [ContentController::class, 'inlineUpdate'])
-            ->name('contents.inlineUpdate');
+            /* Episodes */
+            Route::post(
+                '/seasons/{season}/episodes',
+                [ContentController::class, 'storeEpisode']
+            )
+                ->name('episodes.store');
 
-        /* Seasons */
-        Route::post('/contents/{content}/seasons',
-            [ContentController::class, 'storeSeason'])
-            ->name('seasons.store');
+            Route::post('/media/upload', [UploadController::class, 'upload'])
+                ->name('media.upload');
 
-        /* Episodes */
-        Route::post('/seasons/{season}/episodes',
-            [ContentController::class, 'storeEpisode'])
-            ->name('episodes.store');
+            Route::get('/media', [MediaController::class, 'index'])
+                ->name('media.index');
 
-});
+            Route::delete('/media', [MediaController::class, 'destroy'])
+                ->name('media.destroy');
+        });
+    });
 
 
 /*
 |--------------------------------------------------------------------------
-| Auth Routes
+| Auth Routes (Breeze + Admin Login inside auth.php)
 |--------------------------------------------------------------------------
 */
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

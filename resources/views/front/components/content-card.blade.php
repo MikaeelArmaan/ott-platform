@@ -57,8 +57,7 @@ $progressPercent = $progress->completion_percent ?? null;
 
             {{-- WATCHLIST --}}
             @auth
-            @if(auth()->user()->isConsumer())
-
+            
             <form class="watchlist-form"
                   data-content-id="{{ $content->id }}">
 
@@ -75,7 +74,6 @@ $progressPercent = $progress->completion_percent ?? null;
 
             </form>
 
-            @endif
             @endauth
 
         </div>

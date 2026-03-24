@@ -16,22 +16,47 @@ class RbacSeeder extends Seeder
         $content = Role::firstOrCreate(['name' => 'content_manager']);
 
         // Permissions
-        $manageUsers = Permission::firstOrCreate(['name' => 'manage_users']);
-        $upload      = Permission::firstOrCreate(['name' => 'upload_content']);
-        $delete      = Permission::firstOrCreate(['name' => 'delete_content']);
+        $manageUsers   = Permission::firstOrCreate(['name' => 'manage_users']);
 
-        // Attach permissions to roles
+        // 🔥 Content Permissions
+        $manageContent = Permission::firstOrCreate(['name' => 'manage_content']);
+        $viewContent   = Permission::firstOrCreate(['name' => 'view_content']);
+        $createContent = Permission::firstOrCreate(['name' => 'create_content']);
+        $editContent   = Permission::firstOrCreate(['name' => 'edit_content']);
+        $deleteContent = Permission::firstOrCreate(['name' => 'delete_content']);
+        $publishContent = Permission::firstOrCreate(['name' => 'publish_content']);
+
+        /*
+    |--------------------------------------------------------------------------
+    | Assign Permissions
+    |--------------------------------------------------------------------------
+    */
+
+        // Admin → full access
         $admin->permissions()->sync([
             $manageUsers->id,
-            $upload->id,
-            $delete->id
+            $manageContent->id,
+            $viewContent->id,
+            $createContent->id,
+            $editContent->id,
+            $deleteContent->id,
+            $publishContent->id,
         ]);
 
+        // Content Manager → limited access
         $content->permissions()->sync([
-            $upload->id
+            $viewContent->id,
+            $createContent->id,
+            $editContent->id,
+            $publishContent->id,
         ]);
 
-        // Assign admin role to first user
+        /*
+    |--------------------------------------------------------------------------
+    | Assign Role to User
+    |--------------------------------------------------------------------------
+    */
+
         $user = User::first();
         if ($user) {
             $user->roles()->syncWithoutDetaching([$admin->id]);

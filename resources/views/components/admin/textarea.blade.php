@@ -6,8 +6,7 @@
         class="peer w-full bg-zinc-900 border border-zinc-700 rounded
                px-3 pt-5 pb-2 text-white
                focus:border-red-600 focus:outline-none"
-        placeholder=" "
-    >{{ old($name) }}</textarea>
+        placeholder=" ">{{ old($name) }}</textarea>
 
     <label
         for="{{ $name }}"
@@ -17,8 +16,7 @@
                peer-focus:top-2
                peer-focus:text-xs
                peer-focus:text-red-500
-               transition-all"
-    >
+               transition-all">
         {{ $label }}
     </label>
 </div>

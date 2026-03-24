@@ -1,15 +1,14 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\HomeController;
 use App\Http\Controllers\Api\V1\CatalogController;
 use App\Http\Controllers\Api\V1\PlaybackController;
 use App\Http\Controllers\Api\V1\WatchlistController;
-use App\Http\Controllers\Admin\ContentController;
 use App\Http\Controllers\Api\V1\WatchHistoryController;
+use App\Http\Controllers\Api\V1\Admin\ContentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -19,53 +18,43 @@ use App\Http\Controllers\Api\V1\WatchHistoryController;
 
 Route::prefix('v1')->group(function () {
 
-    /* ---------------- AUTH ---------------- */
+    /*
+    |---------------- PUBLIC ----------------
+    */
 
-    Route::post('/auth/register', [AuthController::class, 'register']);
     Route::post('/auth/login', [AuthController::class, 'login']);
+    Route::post('/auth/register', [AuthController::class, 'register']);
 
-    /* ---------------- PLAYBACK ---------------- */
+    Route::get('/catalog/movies', [CatalogController::class, 'movies']);
+    Route::get('/catalog/series', [CatalogController::class, 'series']);
+    Route::get('/catalog/content/{content:slug}', [CatalogController::class, 'show']);
+    Route::get('/catalog/search', [CatalogController::class, 'search']);
 
-    Route::post('/playback/start', [PlaybackController::class, 'start']);
-    Route::post('/playback/progress', [PlaybackController::class, 'progress']);
-    Route::post('/watch-history', [WatchHistoryController::class, 'update']);
+    /*
+    |---------------- AUTH ----------------
+    */
 
     Route::middleware('auth:sanctum')->group(function () {
 
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/auth/me', [AuthController::class, 'me']);
 
-        /* ---------------- PROFILES ---------------- */
-
-        Route::get('/profiles', [ProfileController::class, 'index']);
-        Route::post('/profiles', [ProfileController::class, 'store']);
-        Route::put('/profiles/{profile}', [ProfileController::class, 'update']);
-        Route::delete('/profiles/{profile}', [ProfileController::class, 'destroy']);
-
-        /* ---------------- HOME ---------------- */
-
         Route::get('/home', [HomeController::class, 'index']);
 
-        /* ---------------- CATALOG ---------------- */
+        Route::post('/playback/start', [PlaybackController::class, 'start']);
+        Route::post('/playback/progress', [PlaybackController::class, 'progress']);
+        Route::post('/watch-history', [WatchHistoryController::class, 'update']);
 
-        Route::get('/movies', [CatalogController::class, 'movies']);
-        Route::get('/series', [CatalogController::class, 'series']);
-        Route::get('/content/{id}', [CatalogController::class, 'show']);
-        Route::get('/search', [CatalogController::class, 'search']);
+        Route::apiResource('profiles', ProfileController::class);
 
-        /* ---------------- WATCHLIST ---------------- */
-
-        Route::get('/watchlist', [WatchlistController::class, 'index']);
-        Route::post('/watchlist', [WatchlistController::class, 'store']);
-        Route::delete('/watchlist/{contentId}', [WatchlistController::class, 'destroy']);
-
-        
-        /* ---------------- ADMIN (RBAC PROTECTED) ---------------- */
+        Route::prefix('watchlist')->group(function () {
+            Route::get('/', [WatchlistController::class, 'index']);
+            Route::post('/', [WatchlistController::class, 'store']);
+            Route::delete('/{content}', [WatchlistController::class, 'destroy']);
+        });
 
         Route::middleware('permission:upload_content')->group(function () {
             Route::post('/admin/contents', [ContentController::class, 'store']);
         });
-
     });
-
 });

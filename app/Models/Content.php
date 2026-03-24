@@ -23,10 +23,10 @@ class Content extends Model
         'release_year',
         'release_date',
         'duration',
-        'poster',
-        'thumbnail',
-        'backdrop',
-        'logo',
+        'poster_url',
+        'thumbnail_url',
+        'backdrop_url',
+        'logo_url',
         'imdb_rating',
         'avg_rating',
         'is_featured',
@@ -64,6 +64,19 @@ class Content extends Model
         return $query->where('is_trending', true);
     }
 
+    public function getPosterAttribute()
+    {
+        return $this->poster_url
+            ? asset('storage/' . $this->poster_url)
+            : null;
+    }
+
+    public function getThumbnailAttribute()
+    {
+        return $this->thumbnail_url
+            ? asset('storage/' . $this->thumbnail_url)
+            : null;
+    }
     /*
     |--------------------------------------------------------------------------
     | Relationships
@@ -82,9 +95,7 @@ class Content extends Model
 
     public function videoAsset()
     {
-        return $this->hasOne(VideoAsset::class)
-            ->whereNull('episode_id')
-            ->where('is_processed', true);
+        return $this->hasOne(VideoAsset::class, 'content_id');
     }
 
     public function seasons()

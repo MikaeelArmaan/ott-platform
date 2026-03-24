@@ -16,7 +16,7 @@ class BrowseController extends Controller
     {
         $base = Content::where('is_published', true);
 
-        $featured = (clone $base)->latest()->take(5)->get();
+        $featured = (clone $base)->latest()->take(1)->get();
         $trending = (clone $base)->latest()->skip(5)->take(12)->get();
         $movies   = (clone $base)->where('type', 'movie')->latest()->take(12)->get();
         $series   = (clone $base)->where('type', 'series')->latest()->take(12)->get();
@@ -27,7 +27,7 @@ class BrowseController extends Controller
         $watchlistIds = [];
         $profile = null;
 
-        if (auth()->check() && auth()->user()->isConsumer()) {
+        if (auth()->check()) {
             $profile = auth()->user()->profiles()->first();
 
             if ($profile) {
@@ -41,11 +41,11 @@ class BrowseController extends Controller
                     ->toArray();
 
                 $continueWatching = WatchHistory::with('content')
-                                        ->continueWatching()
-                                        ->where('profile_id',$profile->id)
-                                        ->orderByDesc('watched_at')
-                                        ->limit(10)
-                                        ->get();
+                    ->continueWatching()
+                    ->where('profile_id', $profile->id)
+                    ->orderByDesc('watched_at')
+                    ->limit(10)
+                    ->get();
             }
         }
 
@@ -84,8 +84,6 @@ class BrowseController extends Controller
             ->paginate(12, [
                 'id',
                 'title',
-                'poster',
-                'thumbnail',
                 'type',
                 'maturity_rating'
             ])
@@ -94,7 +92,7 @@ class BrowseController extends Controller
         // Watchlist ids for card buttons
         $watchlistIds = [];
 
-        if (auth()->check() && auth()->user()->isConsumer()) {
+        if (auth()->check()) {
             $profile = auth()->user()->profiles()->first();
 
             if ($profile) {
@@ -192,81 +190,111 @@ class BrowseController extends Controller
 
     public function watch(Content $content, Episode $episode = null)
     {
+        /*
+    |--------------------------------------------------------------------------
+    | Eager Load Everything Needed
+    |--------------------------------------------------------------------------
+    */
+
+        $content->load([
+            'videoAsset',
+            'seasons.episodes.videoAsset'
+        ]);
+
+        if ($episode) {
+            $episode->load(['videoAsset', 'season']);
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | Resolve Resume Position
+    |--------------------------------------------------------------------------
+    */
+
         $profile = auth()->user()?->profiles()->first();
 
         $resumeAt = 0;
 
         if ($profile) {
-            $query = PlaybackProgress::where('profile_id', $profile->id)
-                ->where('content_id', $content->id);
 
-            if ($episode) {
-                $query->where('episode_id', $episode->id);
-            } else {
-                $query->whereNull('episode_id');
+            $resumeAt = PlaybackProgress::where('profile_id', $profile->id)
+                ->where('content_id', $content->id)
+                ->when(
+                    $episode,
+                    fn($q) => $q->where('episode_id', $episode->id),
+                    fn($q) => $q->whereNull('episode_id')
+                )
+                ->value('position_seconds') ?? 0;
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | Resolve Video Asset
+    |--------------------------------------------------------------------------
+    */
+
+        $asset = $episode?->videoAsset ?? $content->videoAsset;
+
+        $mp4Url = null;
+        $hlsUrl = null;
+
+        if ($asset) {
+
+            if ($asset->path) {
+                $mp4Url = asset('storage/' . $asset->path);
             }
 
-            $resumeAt = $query->value('position_seconds') ?? 0;
+            if ($asset->is_processed) {
+
+                $folder = $asset->episode_id
+                    ? "episode/{$asset->episode_id}"
+                    : "content/{$asset->content_id}";
+
+                $hlsUrl = asset("storage/hls/{$folder}/master.m3u8");
+            }
         }
 
-        $episodes = [];
+        /*
+|--------------------------------------------------------------------------
+| Episodes / Next + Previous Episode (Cross Season)
+|--------------------------------------------------------------------------
+*/
+
+        $queue = collect();
+        $currentIndex = null;
         $nextEpisode = null;
-
-        $videoUrl = null;
-
-        /*
-        |--------------------------------
-        | Resolve Video Source
-        |--------------------------------
-        */
-
-        if ($episode) {
-
-            $asset = VideoAsset::where('episode_id', $episode->id)
-                ->where('is_processed', true)
-                ->select('path')
-                ->first();
-
-            $videoUrl = $asset?->path;
-        } else {
-            // for movies
-            $asset = VideoAsset::where('content_id', $content->id)
-                ->whereNull('episode_id')
-                ->where('is_processed', true)
-                ->select('path')
-                ->first();
-
-            $videoUrl = $asset?->path;
-        }
-        /*
-        |--------------------------------
-        | Series Episode Handling
-        |--------------------------------
-        */
+        $previousEpisode = null;
 
         if ($content->type === 'series') {
 
-            $season = $content->seasons()
-                        ->orderBy('season_number')
-                        ->first();
+            $queue = Episode::select('episodes.*')
+                ->join('seasons', 'episodes.season_id', '=', 'seasons.id')
+                ->where('episodes.content_id', $content->id)
+                ->orderBy('seasons.season_number')
+                ->orderBy('episodes.episode_number')
+                ->with('season')
+                ->get()
+                ->values();
 
             if ($episode) {
-                $season = $episode->season;
-            }
 
-            if ($season) {
-                $episodes = $season
-                    ? $season->episodes()->orderBy('episode_number')->get()
-                    : collect();
-            }
+                $currentIndex = $queue->search(fn($ep) => $ep->id === $episode->id);
 
-            if ($episode) {
-                $nextEpisode = Episode::where('season_id', $episode->season_id)
-                    ->where('episode_number', '>', $episode->episode_number)
-                    ->orderBy('episode_number')
-                    ->first();
+                if ($currentIndex !== false && $currentIndex > 0) {
+                    $previousEpisode = $queue[$currentIndex - 1];
+                }
+
+                if ($currentIndex !== false && isset($queue[$currentIndex + 1])) {
+                    $nextEpisode = $queue[$currentIndex + 1];
+                }
             }
         }
+
+        /*
+    |--------------------------------------------------------------------------
+    | Recommended Content
+    |--------------------------------------------------------------------------
+    */
 
         $recommended = Content::where('id', '!=', $content->id)
             ->where('is_published', true)
@@ -276,18 +304,26 @@ class BrowseController extends Controller
             ->get([
                 'id',
                 'title',
-                'poster',
-                'thumbnail',
                 'type'
             ]);
 
+        /*
+    |--------------------------------------------------------------------------
+    | Return View
+    |--------------------------------------------------------------------------
+    */
+    $episodes = $queue;
         return view('front.pages.watch', compact(
             'content',
             'episode',
-            'episodes',
+            'queue',           // ✅ IMPORTANT
+            'episodes', // ✅ ADD THIS
+            'currentIndex',
             'nextEpisode',
+            'previousEpisode',
             'resumeAt',
-            'videoUrl',
+            'mp4Url',
+            'hlsUrl',
             'recommended'
         ));
     }
@@ -311,10 +347,6 @@ class BrowseController extends Controller
             }
         }
 
-        return view('front.pages.watch', [
-            'content' => $content,
-            'episode' => $episode,
-            'resumeAt' => $resumeAt
-        ]);
+        return $this->watch($content, $episode);
     }
 }

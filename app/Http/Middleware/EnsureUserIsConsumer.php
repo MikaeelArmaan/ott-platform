@@ -15,7 +15,7 @@ class EnsureUserIsConsumer
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!auth()->check() || !auth()->user()->isConsumer()) {
+        if (!auth()->check() ) {
             abort(403);
         }
 

@@ -17,3 +17,6 @@ import './modules/row-swiper';
 import './modules/load-more';
 import './modules/datatable-init';
 import './modules/content';
+import './modules/image-upload';
+import './modules/select2';
+import './modules/media-manager';

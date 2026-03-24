@@ -1,33 +1,35 @@
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<div
+    x-cloak
+    x-data="contentWizard(
+        '{{ $content->type ?? 'movie' }}',
+        {{ json_encode($seasonsJson ?? []) }}
+    )"
+    class="space-y-6">
 
-    <select name="type" class="input">
-        <option value="movie">Movie</option>
-        <option value="series">Series</option>
-    </select>
+    @include('admin.contents.wizard.steps')
 
-    <x-admin.input name="title" label="Title" :value="$content->title ?? ''" />
+    <!-- STEP CONTENT -->
 
-    <x-admin.input name="language" label="Language" />
+    <div x-show="step===1">
+        @include('admin.contents.sections.content-info')
+    </div>
 
-    <x-admin.input name="release_date" label="Release Date" type="date" />
+    <div x-show="step===2">
+        @include('admin.contents.sections.media')
+    </div>
 
-    <x-admin.input name="runtime_seconds" label="Runtime" />
+    <div x-show="step===3 && type==='movie'">
+        @include('admin.contents.sections.video')
+    </div>
 
-    <x-admin.input name="maturity_rating" label="Rating" />
+    <div x-show="step===3 && type==='series'">
+        @include('admin.contents.sections.seasons')
+    </div>
 
-    <x-admin.image-upload name="poster" label="Poster" />
+    <div x-show="step===4">
+        @include('admin.contents.sections.publish')
+    </div>
 
-    <x-admin.image-upload name="thumbnail" label="Thumbnail" />
-
-    <x-admin.image-upload name="backdrop" label="Backdrop" />
-
-    <x-admin.video-upload name="video" label="Video" />
-
-    <x-admin.textarea name="description" label="Description" />
-
-    <label class="flex items-center gap-2 md:col-span-3">
-        <input type="checkbox" name="is_published">
-        Publish
-    </label>
+    @include('admin.contents.wizard.navigation')
 
 </div>

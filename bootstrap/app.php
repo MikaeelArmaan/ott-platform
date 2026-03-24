@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
         'permission' => \App\Http\Middleware\PermissionMiddleware::class,
         'consumer' => \App\Http\Middleware\EnsureUserIsConsumer::class,
+        'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
      ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

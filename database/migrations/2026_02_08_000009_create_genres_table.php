@@ -18,9 +18,15 @@ return new class extends Migration {
 
             $table->text('description')->nullable();
 
-            $table->timestamps();
+            // ✅ UI / UX
+            $table->string('icon')->nullable(); // for UI chips
+            $table->string('color')->nullable(); // for tags
 
-            $table->index('slug');
+            // ✅ Control
+            $table->boolean('is_active')->default(true);
+            $table->integer('sort_order')->default(0);
+
+            $table->timestamps();
         });
     }
     public function down()

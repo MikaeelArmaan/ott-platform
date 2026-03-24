@@ -26,9 +26,12 @@ return new class extends Migration {
 
             $table->string('quality')->nullable(); // 480p,720p,1080p
 
-            $table->string('path');
+            $table->string('path')->nullable();
+            $table->string('hls_master_url')->nullable();
 
             $table->integer('duration')->nullable();
+
+            $table->timestamp('release_at')->nullable()->index();
 
             $table->string('mime_type')->nullable();
 

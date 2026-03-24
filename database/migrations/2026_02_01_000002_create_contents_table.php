@@ -42,10 +42,10 @@ return new class extends Migration {
 
       $table->unsignedBigInteger('views_count')->default(0);
 
-      $table->string('poster')->nullable();
-      $table->string('thumbnail')->nullable();
-      $table->string('backdrop')->nullable();
-      $table->string('logo')->nullable();
+      $table->string('poster_url')->nullable();
+      $table->string('thumbnail_url')->nullable();
+      $table->string('backdrop_url')->nullable();
+      $table->string('logo_url')->nullable();
 
       $table->decimal('imdb_rating', 3, 1)->nullable();
       $table->decimal('avg_rating', 3, 1)->nullable();

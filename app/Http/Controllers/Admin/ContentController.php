@@ -6,34 +6,49 @@ use App\Http\Controllers\Controller;
 use App\Models\Content;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use App\Models\VideoAsset;
 use App\Jobs\ConvertVideoToHls;
 use App\Models\Season;
 use App\Models\Episode;
+use App\Models\Genre;
 use Illuminate\Support\Str;
 
 class ContentController extends Controller
 {
+    /*
+    |--------------------------------------------------------------------------
+    | LIST CONTENTS
+    |--------------------------------------------------------------------------
+    */
     public function index()
     {
         return view('admin.contents.index', [
-            'contents' => Content::withCount([
-                'seasons',
-                'episodes',
-                'videoAsset'
-            ])
+            'contents' => Content::withCount(['seasons', 'episodes'])
+                ->with('videoAsset')
                 ->latest()
                 ->paginate(20),
         ]);
     }
 
-
+    /*
+    |--------------------------------------------------------------------------
+    | CREATE FORM
+    |--------------------------------------------------------------------------
+    */
     public function create()
     {
-        return view('admin.contents.create');
+        return view('admin.contents.create', [
+            'content' => new Content(),
+            'genres' => Genre::all()
+        ]);
     }
 
-
+    /*
+    |--------------------------------------------------------------------------
+    | STORE CONTENT
+    |--------------------------------------------------------------------------
+    */
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -44,210 +59,130 @@ class ContentController extends Controller
             'release_date' => 'nullable|date',
             'runtime_seconds' => 'nullable|integer',
             'maturity_rating' => 'nullable|string|max:20',
+
             'poster' => 'nullable|image|max:2048',
             'thumbnail' => 'nullable|image|max:2048',
             'backdrop' => 'nullable|image|max:4096',
-            'video' => 'nullable|mimes:mp4|max:200000'
+            'genres' => 'nullable|array',
+            'genres.*' => 'exists:genres,id',
+
+            'video' => 'nullable|file|mimetypes:video/mp4|max:204800',
         ]);
 
         $data['is_published'] = $request->has('is_published');
 
-        /*
-        |--------------------------------------------------------------------------
-        | Upload Images
-        |--------------------------------------------------------------------------
-        */
+        DB::transaction(function () use ($request, &$content, &$data) {
 
-        if ($request->hasFile('poster')) {
-            $data['poster_url'] =
-                $request->file('poster')->store('posters', 'public');
-        }
+            /*
+            |-----------------------------
+            | Images
+            |-----------------------------
+            */
+            foreach (['poster', 'thumbnail', 'backdrop'] as $img) {
+                if ($request->hasFile($img)) {
+                    $data[$img . '_url'] = $request->file($img)
+                        ->store($img . 's', 'public');
+                }
+            }
 
-        if ($request->hasFile('thumbnail')) {
-            $data['thumbnail_url'] =
-                $request->file('thumbnail')->store('thumbnails', 'public');
-        }
+            /*
+            |-----------------------------
+            | Slug
+            |-----------------------------
+            */
+            $slug = Str::slug($data['title']);
+            $original = $slug;
+            $i = 1;
 
-        if ($request->hasFile('backdrop')) {
-            $data['backdrop_url'] =
-                $request->file('backdrop')->store('backdrops', 'public');
-        }
+            while (Content::where('slug', $slug)->exists()) {
+                $slug = $original . '-' . $i++;
+            }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Upload Video
-        |--------------------------------------------------------------------------
-        */
+            $data['slug'] = $slug;
 
-        if ($request->hasFile('video')) {
-            $data['video_url'] =
-                $request->file('video')->store('videos/movies', 'public');
-        }
+            /*
+            |-----------------------------
+            | Create Content
+            |-----------------------------
+            */
+            $content = Content::create($data);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Generate Slug
-        |--------------------------------------------------------------------------
-        */
+            if ($request->has('genres')) {
+                $content->genres()->sync($request->genres);
+            }
 
-        $slug = Str::slug($data['title']);
+            /*
+            |-----------------------------
+            | Movie Video
+            |-----------------------------
+            */
+            if ($request->hasFile('video')) {
 
-        if (Content::where('slug', $slug)->exists()) {
-            $slug .= '-' . Str::random(5);
-        }
+                $videoPath = $request->file('video')
+                    ->store('videos/movies', 'public');
 
-        $data['slug'] = $slug;
+                $asset = VideoAsset::create([
+                    'content_id' => $content->id,
+                    'type' => 'movie',
+                    'quality' => 'source',
+                    'path' => $videoPath,
+                    'mime_type' => $request->file('video')->getMimeType(),
+                    'size' => $request->file('video')->getSize(),
+                    'is_default' => true,
+                    'is_processed' => false
+                ]);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Create Content
-        |--------------------------------------------------------------------------
-        */
-
-        $content = Content::create($data);
-
-        /*
-        |--------------------------------------------------------------------------
-        | Create Video Asset
-        |--------------------------------------------------------------------------
-        */
-
-        if (!empty($data['video_url'])) {
-
-            $asset = VideoAsset::create([
-                'content_id' => $content->id,
-                'source_url' => $data['video_url'],
-                'status' => 'uploaded'
-            ]);
-
-            ConvertVideoToHls::dispatch($asset)
-                ->onQueue('video-processing');
-        }
+                ConvertVideoToHls::dispatch($asset->id)
+                    ->onQueue('video-processing');
+            }
+        });
 
         return redirect()
             ->route('admin.contents.index')
             ->with('success', 'Content added successfully!');
     }
 
-
     /*
     |--------------------------------------------------------------------------
-    | STORE SEASON
+    | EDIT
     |--------------------------------------------------------------------------
     */
-
-    public function storeSeason(Request $request, Content $content)
-    {
-        abort_if($content->type !== 'series', 400);
-
-        $data = $request->validate([
-            'season_number' => 'required|integer|min:1',
-            'title' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
-        ]);
-
-        Season::updateOrCreate(
-            [
-                'content_id' => $content->id,
-                'season_number' => $data['season_number']
-            ],
-            $data
-        );
-
-        return back()->with('success', 'Season saved');
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | STORE EPISODE
-    |--------------------------------------------------------------------------
-    */
-
-    public function storeEpisode(Request $request, Season $season)
-    {
-        $data = $request->validate([
-            'episode_number' => 'required|integer|min:1',
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'runtime_seconds' => 'nullable|integer',
-            'release_date' => 'nullable|date',
-            'thumbnail' => 'nullable|image|max:2048',
-            'video' => 'nullable|mimes:mp4|max:200000',
-            'is_published' => 'nullable'
-        ]);
-
-        $data['is_published'] = $request->has('is_published');
-
-        /*
-        |--------------------------------------------------------------------------
-        | Upload Episode Thumbnail
-        |--------------------------------------------------------------------------
-        */
-
-        if ($request->hasFile('thumbnail')) {
-            $data['thumbnail_url'] =
-                $request->file('thumbnail')->store('episode-thumbs', 'public');
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Upload Episode Video
-        |--------------------------------------------------------------------------
-        */
-
-        if ($request->hasFile('video')) {
-            $data['video_url'] =
-                $request->file('video')->store('videos/episodes', 'public');
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Create Episode
-        |--------------------------------------------------------------------------
-        */
-
-        $episode = Episode::updateOrCreate(
-            [
-                'season_id' => $season->id,
-                'episode_number' => $data['episode_number']
-            ],
-            $data
-        );
-
-        /*
-        |--------------------------------------------------------------------------
-        | Create Video Asset
-        |--------------------------------------------------------------------------
-        */
-
-        if (!empty($data['video_url'])) {
-
-            $asset = VideoAsset::updateOrCreate(
-                ['episode_id' => $episode->id],
-                [
-                    'content_id' => $season->content_id,
-                    'source_url' => $data['video_url'],
-                    'status' => 'uploaded'
-                ]
-            );
-
-            ConvertVideoToHls::dispatch($asset)
-                ->onQueue('video-processing');
-        }
-
-        return back()->with('success', 'Episode saved');
-    }
-
-
     public function edit(Content $content)
     {
-        $content->load('seasons.episodes');
+        $content->load([
+            'videoAsset',
+            'genres',
+            'seasons.episodes.videoAsset'
+        ]);
 
-        return view('admin.contents.edit', compact('content'));
+        $seasonsJson = $content->seasons->map(function ($season) {
+            return [
+                'id' => $season->id,
+                'name' => $season->title,
+                'season_number' => $season->season_number,
+                'episodes' => $season->episodes->map(function ($ep) {
+                    return [
+                        'id' => $ep->id,
+                        'title' => $ep->title,
+                        'description' => $ep->description,
+                        'runtime' => $ep->duration ?? 0,
+                        'episode_number' => $ep->episode_number,
+                        'thumbnail' => $ep->thumbnail,
+                        'video' => $ep->videoAsset?->path,
+                        'is_processed' => $ep->videoAsset?->is_processed,
+                    ];
+                })->values()
+            ];
+        })->values();
+        return view('admin.contents.edit', compact('content', 'seasonsJson'))
+            ->with('genres', Genre::all());
     }
 
-
+    /*
+    |--------------------------------------------------------------------------
+    | UPDATE
+    |--------------------------------------------------------------------------
+    */
     public function update(Request $request, Content $content)
     {
         $data = $request->validate([
@@ -256,90 +191,272 @@ class ContentController extends Controller
             'description' => 'nullable|string',
             'language' => 'nullable|string',
             'release_date' => 'nullable|date',
-            'runtime_seconds' => 'nullable|integer',
-            'maturity_rating' => 'nullable|string'
+            'duration' => 'nullable|integer',
+            'maturity_rating' => 'nullable|string',
+
+            'poster' => 'nullable|image|max:2048',
+            'thumbnail' => 'nullable|image|max:2048',
+            'backdrop' => 'nullable|image|max:4096',
+
+            'video' => 'nullable|file|mimetypes:video/mp4|max:204800',
+            'genres' => 'nullable|array',
+            'genres.*' => 'exists:genres,id',
+            'episode_videos.*.*' => 'nullable|file|mimetypes:video/mp4|max:204800',
+            'episode_thumbnails.*.*' => 'nullable|image|max:4096',
         ]);
 
-        $content->update($data);
+        $data['is_published'] = $request->has('is_published');
+
+        DB::transaction(function () use ($request, $content, $data) {
+
+            /*
+            |-----------------------------
+            | Images Replace
+            |-----------------------------
+            */
+            foreach (['poster', 'thumbnail', 'backdrop'] as $img) {
+
+                if ($request->hasFile($img)) {
+
+                    if ($content->{$img . '_url'}) {
+                        Storage::disk('public')->delete($content->{$img . '_url'});
+                    }
+
+                    $content->{$img . '_url'} =
+                        $request->file($img)->store($img . 's', 'public');
+                }
+            }
+
+            /*
+            |-----------------------------
+            | Movie Video Replace
+            |-----------------------------
+            */
+            if ($request->hasFile('video')) {
+                if ($content->videoAsset) {
+
+                    Storage::disk('public')->delete($content->videoAsset->path);
+
+                    if ($content->videoAsset->hls_master_url) {
+                        Storage::disk('public')->deleteDirectory(
+                            dirname($content->videoAsset->hls_master_url)
+                        );
+                    }
+
+                    $content->videoAsset->delete();
+                }
+
+                $path = $request->file('video')
+                    ->store('videos/movies', 'public');
+
+                $asset = VideoAsset::create([
+                    'content_id' => $content->id,
+                    'type' => 'movie',
+                    'quality' => 'source',
+                    'path' => $path,
+                    'mime_type' => $request->file('video')->getMimeType(),
+                    'size' => $request->file('video')->getSize(),
+                    'is_default' => true,
+                    'is_processed' => false
+                ]);
+
+                ConvertVideoToHls::dispatch($asset->id);
+            }
+
+            /*
+            |-----------------------------
+            | Slug Update
+            |-----------------------------
+            */
+            if ($content->title !== $data['title']) {
+
+                $slug = Str::slug($data['title']);
+                $original = $slug;
+                $i = 1;
+
+                while (Content::where('slug', $slug)
+                    ->where('id', '!=', $content->id)->exists()
+                ) {
+                    $slug = $original . '-' . $i++;
+                }
+
+                $data['slug'] = $slug;
+            }
+
+            $content->update($data);
+
+            if ($request->has('genres')) {
+                $content->genres()->sync($request->genres);
+            }
+            /*
+            |-----------------------------
+            | SERIES LOGIC
+            |-----------------------------
+            */
+            if ($data['type'] === 'series' && $request->seasons) {
+
+                $seasons = json_decode($request->seasons, true);
+
+                foreach ($seasons as $sIndex => $seasonData) {
+
+                    $season = $content->seasons()->updateOrCreate(
+                        ['season_number' => $sIndex + 1],
+                        ['title' => $seasonData['name']]
+                    );
+
+                    foreach ($seasonData['episodes'] as $eIndex => $epData) {
+
+                        $episode = $season->episodes()->updateOrCreate(
+                            [
+                                'episode_number' => $eIndex + 1,
+                                'season_id' => $season->id,
+                            ],
+                            [
+                                'content_id' => $content->id, // 🔥 FIX
+                                'title' => $epData['title'],
+                                'duration' => 0,
+                                'description' => $epData['description'] ?? null,
+                            ]
+                        );
+
+                        /*
+                        | Episode Video
+                        */
+                        if ($request->hasFile("episode_videos.$sIndex.$eIndex")) {
+
+                            $file = $request->file("episode_videos.$sIndex.$eIndex");
+
+                            $episode->videoAsset()->delete();
+
+                            $path = $file->store('videos/episodes', 'public');
+
+                            $asset = VideoAsset::create([
+                                'content_id' => $content->id,
+                                'episode_id' => $episode->id,
+                                'type' => 'episode',
+                                'quality' => 'source',
+                                'path' => $path,
+                                'mime_type' => $file->getMimeType(),
+                                'size' => $file->getSize(),
+                                'is_default' => true,
+                                'is_processed' => false
+                            ]);
+
+                            ConvertVideoToHls::dispatch($asset->id);
+                        }
+
+                        /*
+                        | Episode Thumbnail
+                        */
+                        if ($request->hasFile("episode_thumbnails.$sIndex.$eIndex")) {
+
+                            $file = $request->file("episode_thumbnails.$sIndex.$eIndex");
+
+                            if ($episode->thumbnail) {
+                                Storage::disk('public')->delete($episode->thumbnail);
+                            }
+
+                            $episode->update([
+                                'thumbnail' => $file->store('episode-thumbs', 'public')
+                            ]);
+                        }
+                    }
+                }
+            }
+        });
 
         return redirect()
             ->route('admin.contents.index')
-            ->with('success', 'Content updated');
+            ->with('success', 'Content updated successfully');
     }
 
-
+    /*
+    |--------------------------------------------------------------------------
+    | DELETE
+    |--------------------------------------------------------------------------
+    */
     public function destroy(Content $content)
     {
-        /*
-        |--------------------------------------------------------------------------
-        | Delete Video Assets
-        |--------------------------------------------------------------------------
-        */
+        DB::transaction(function () use ($content) {
 
-        foreach ($content->videoAssets as $asset) {
-
-            if ($asset->source_url) {
-                Storage::disk('public')->delete($asset->source_url);
+            if ($content->videoAsset) {
+                Storage::disk('public')->delete($content->videoAsset->path);
+                $content->videoAsset->delete();
             }
 
-            if ($asset->hls_master_url) {
-                Storage::disk('public')
-                    ->deleteDirectory(dirname($asset->hls_master_url));
-            }
-
-            $asset->delete();
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Delete Images
-        |--------------------------------------------------------------------------
-        */
-
-        if ($content->poster_url) {
-            Storage::disk('public')->delete($content->poster_url);
-        }
-
-        if ($content->thumbnail_url) {
-            Storage::disk('public')->delete($content->thumbnail_url);
-        }
-
-        if ($content->backdrop_url) {
-            Storage::disk('public')->delete($content->backdrop_url);
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Delete Seasons & Episodes
-        |--------------------------------------------------------------------------
-        */
-
-        $content->seasons()->each(function ($season) {
-
-            $season->episodes()->each(function ($episode) {
-
-                if ($episode->videoAsset) {
-                    $episode->videoAsset->delete();
+            foreach (['poster_url', 'thumbnail_url', 'backdrop_url'] as $img) {
+                if ($content->$img) {
+                    Storage::disk('public')->delete($content->$img);
                 }
+            }
 
-                $episode->delete();
+            $content->seasons()->each(function ($season) {
+                $season->episodes()->each(function ($ep) {
+                    $ep->videoAssets()->delete();
+                    $ep->delete();
+                });
+                $season->delete();
             });
 
-            $season->delete();
+            $content->delete();
         });
 
-        $content->delete();
-
-        return back()->with('success', 'Content deleted');
+        return response()->json(['success' => true]);
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | GENERIC TOGGLE (PUBLISH / FEATURED / TRENDING / RECOMMENDED)
+    |--------------------------------------------------------------------------
+    */
     public function togglePublish(Request $request, Content $content)
     {
-        $content->is_published = $request->boolean('status');
+        $allowed = [
+            'is_published',
+            'is_featured',
+            'is_trending',
+            'is_recommended',
+        ];
+
+        $field = $request->input('field');
+        $value = $request->boolean('value');
+
+        if (!in_array($field, $allowed)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid field'
+            ], 422);
+        }
+
+        // update
+        $content->{$field} = $value;
+
+        if ($field === 'is_published') {
+            $content->published_at = $value ? now() : null;
+        }
+
         $content->save();
 
+        // 🔥 human readable labels
+        $labels = [
+            'is_published'   => 'Published',
+            'is_featured'    => 'Featured',
+            'is_trending'    => 'Trending',
+            'is_recommended' => 'Recommended',
+        ];
+
+        $label = $labels[$field] ?? ucfirst(str_replace('_', ' ', $field));
+
+        // 🔥 dynamic message
+        $message = $value
+            ? "{$content->title} marked as {$label}"
+            : "{$label} removed from {$content->title}";
+
         return response()->json([
-            'success' => true
+            'success' => true,
+            'field'   => $field,
+            'value'   => $value,
+            'message' => $message
         ]);
     }
 }

@@ -1,3 +1,118 @@
 .contentManagement input:where([type='checkbox']):checked {
     background-image: none !important;
 }
+
+.sortable-ghost {
+    opacity: 0.3;
+}
+
+.sortable-chosen {
+    transform: scale(1.02);
+    background: #18181b;
+}
+
+.toggle-switch {
+    width: 40px;
+    height: 20px;
+    appearance: none;
+    background: #3f3f46;
+    border-radius: 999px;
+    position: relative;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.toggle-switch:checked {
+    background: #7c3aed;
+}
+
+.toggle-switch::before {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background: white;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: 0.2s;
+}
+
+.toggle-switch:checked::before {
+    transform: translateX(20px);
+}
+/* BASE */
+.toggle-switch {
+    width: 42px;
+    height: 22px;
+    appearance: none;
+    background: #3f3f46;
+    border-radius: 999px;
+    position: relative;
+    cursor: pointer;
+    transition: 0.25s ease;
+}
+
+/* KNOB */
+.toggle-switch::before {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    background: #ffffff;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: 0.25s ease;
+}
+
+/* MOVE KNOB */
+.toggle-switch:checked::before {
+    transform: translateX(20px);
+}
+
+/* ---------------- COLORS ---------------- */
+
+/* ✅ PUBLISHED (Green) */
+.toggle-published:checked {
+    background: #22c55e; /* green-500 */
+}
+
+/* ⭐ FEATURED (Purple) */
+.toggle-featured:checked {
+    background: #8b5cf6; /* violet-500 */
+}
+
+/* 🔥 TRENDING (Orange) */
+.toggle-trending:checked {
+    background: #f97316; /* orange-500 */
+}
+
+/* 💎 RECOMMENDED (Blue) */
+.toggle-recommended:checked {
+    background: #3b82f6; /* blue-500 */
+}
+
+/* ---------------- HOVER EFFECT ---------------- */
+
+.toggle-switch:hover {
+    filter: brightness(1.15);
+}
+
+/* ---------------- GLOW EFFECT (OPTIONAL PREMIUM) ---------------- */
+
+.toggle-published:checked {
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+}
+
+.toggle-featured:checked {
+    box-shadow: 0 0 8px rgba(139, 92, 246, 0.6);
+}
+
+.toggle-trending:checked {
+    box-shadow: 0 0 8px rgba(249, 115, 22, 0.6);
+}
+
+.toggle-recommended:checked {
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
+}

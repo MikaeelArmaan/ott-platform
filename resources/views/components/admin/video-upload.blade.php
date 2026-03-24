@@ -1,94 +1,106 @@
-<div class="relative">
+@props([
+'name',
+'label',
+'value' => null,
+'hls' => null
+])
 
-    <!-- Drop Zone -->
-    <div
-        id="{{ $name }}Drop"
-        class="border-2 border-dashed border-zinc-700 rounded
-               p-5 text-center cursor-pointer
-               hover:border-red-500 transition"
-        onclick="document.getElementById('{{ $name }}').click()"
-        ondragover="dragOver(event)"
-        ondragleave="dragLeave(event,this)"
-        ondrop="handleDrop(event,'{{ $name }}')"
-    >
-        <p class="text-gray-300 text-sm">{{ $label }}</p>
-        <p class="text-xs text-gray-500">MP4 / WEBM / OGG</p>
+<div
+    x-data="{
+        preview: false,
+        video_preview: null,
+        video: '{{ $value ?? '' }}',
+        hls: '{{ $hls ?? '' }}',
+
+        file_name: null,
+        file_size: null,
+
+        previewVideo(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            this.video_preview = URL.createObjectURL(file);
+            this.preview = true;
+
+            this.file_name = file.name;
+            this.file_size = (file.size / 1024 / 1024).toFixed(2);
+
+            // 🔥 FORCE VIDEO RELOAD
+            this.$nextTick(() => {
+                if (this.$refs.player) {
+                    this.$refs.player.load();
+                }
+            });
+        }
+    }"
+    class="space-y-3">
+
+    <!-- LABEL -->
+    <label class="text-sm text-gray-400">
+        {{ $label }}
+    </label>
+
+    <!-- EXISTING PREVIEW (STATIC) -->
+    @if($value || $hls)
+    <div class="bg-black rounded overflow-hidden">
+        <video controls class="w-full h-48">
+            @if($hls)
+            <source src="{{ $hls }}" type="application/x-mpegURL">
+            @else
+            <source src="{{ asset('storage/'.$value) }}" type="video/mp4">
+            @endif
+        </video>
     </div>
+    @endif
 
-    <!-- Hidden File Input -->
+    <!-- TOGGLE -->
+    <button type="button"
+        @click="preview = !preview"
+        class="bg-red-600 px-3 py-1 rounded text-white text-sm">
+        Toggle Preview
+    </button>
+
+    <!-- DYNAMIC PREVIEW -->
+    <template x-if="video_preview || video || hls">
+        <div x-show="preview" x-transition class="bg-black rounded overflow-hidden">
+
+            <video x-ref="player" controls class="w-full h-48 border border-zinc-700 rounded">
+
+                <source
+                    :src="video_preview 
+                        ? video_preview 
+                        : (hls ? hls : '/storage/' + video)"
+                    :type="video_preview 
+                        ? 'video/mp4' 
+                        : (hls ? 'application/x-mpegURL' : 'video/mp4')">
+
+            </video>
+
+        </div>
+    </template>
+
+    <!-- FILE INPUT -->
     <input
         type="file"
         name="{{ $name }}"
-        id="{{ $name }}"
-        accept="video/mp4,video/webm,video/ogg"
-        class="hidden"
-        onchange="previewVideo(event,'{{ $name }}Preview','{{ $name }}Filename','{{ $name }}Progress')"
-    >
+        accept="video/mp4"
+        class="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-white"
+        @change="previewVideo">
 
-    <!-- Filename -->
-    <p id="{{ $name }}Filename"
-       class="text-xs text-gray-400 mt-2"></p>
+    <!-- FILE INFO -->
+    <template x-if="file_name">
+        <div class="text-xs text-green-400">
+            Selected: <span x-text="file_name"></span>
+            (<span x-text="file_size"></span> MB)
+        </div>
+    </template>
 
-    <!-- Progress Bar -->
-    <div class="w-full bg-zinc-800 rounded h-2 mt-2 hidden"
-         id="{{ $name }}ProgressWrap">
-        <div id="{{ $name }}Progress"
-             class="bg-red-600 h-2 rounded w-0"></div>
-    </div>
+    <p class="text-xs text-gray-500">
+        Upload MP4. HLS will be generated automatically.
+    </p>
 
-    <!-- Video Preview -->
-    <video
-        id="{{ $name }}Preview"
-        class="mt-3 w-full max-h-48 rounded hidden"
-        controls
-    ></video>
+    @error($name)
+    <p class="text-red-500 text-xs">{{ $message }}</p>
+    @enderror
 
 </div>
-<script>
-function dragOver(e){
-    e.preventDefault();
-}
-
-function dragLeave(e, el){
-    el.classList.remove('border-red-500');
-}
-
-function handleDrop(e, inputId){
-    e.preventDefault();
-    const input = document.getElementById(inputId);
-    input.files = e.dataTransfer.files;
-    input.dispatchEvent(new Event('change'));
-}
-
-function previewVideo(event, previewId, filenameId, progressId) {
-
-    const file = event.target.files[0];
-    if(!file) return;
-
-    // Size check (500MB)
-    if(file.size > 524288000){
-        alert("Video too large (max 500MB)");
-        event.target.value = "";
-        return;
-    }
-
-    document.getElementById(filenameId).innerText = file.name;
-
-    // Preview
-    const video = document.getElementById(previewId);
-    video.src = URL.createObjectURL(file);
-    video.classList.remove('hidden');
-
-    // Fake progress animation
-    const wrap = document.getElementById(progressId).parentElement;
-    const bar  = document.getElementById(progressId);
-    wrap.classList.remove('hidden');
-
-    let p = 0;
-    const timer = setInterval(()=>{
-        p += 10;
-        bar.style.width = p + "%";
-        if(p >= 100) clearInterval(timer);
-    },100);
-}
-</script>

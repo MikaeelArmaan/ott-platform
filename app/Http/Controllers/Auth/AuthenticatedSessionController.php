@@ -27,7 +27,9 @@ class AuthenticatedSessionController extends Controller
         $request->authenticate();
 
         $request->session()->regenerate();
-
+        if (!auth()->user()->isAdmin()) {
+            return redirect()->intended(route('home', absolute: false));
+        }
         return redirect()->intended(route('admin.dashboard', absolute: false));
     }
 
@@ -43,5 +45,28 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/');
+    }
+
+    public function adminLogin(Request $request)
+    {
+        $credentials = $request->only('email', 'password');
+
+        if (Auth::attempt($credentials)) {
+
+            if (!auth()->user()->isAdmin()) {
+                Auth::logout();
+                return back()->withErrors([
+                    'email' => 'You are not authorized as admin'
+                ]);
+            }
+
+            $request->session()->regenerate();
+
+            return redirect()->route('admin.dashboard');
+        }
+
+        return back()->withErrors([
+            'email' => 'Invalid credentials'
+        ]);
     }
 }

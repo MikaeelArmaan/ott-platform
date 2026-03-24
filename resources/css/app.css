@@ -1,7 +1,15 @@
 @import "swiper/css";
 @import "swiper/css/pagination";
 @import "swiper/css/effect-fade";
+@import "select2/dist/css/select2.min.css";
+
+
+/*
+    Custom CSS files
+*/
 @import "./content-management";
+@import "./sweetalert";
+@import "./select2.css";
 
 @tailwind base;
 @tailwind components;

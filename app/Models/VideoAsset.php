@@ -16,6 +16,7 @@ class VideoAsset extends Model
         'quality',
         'path',
         'duration',
+        'hls_master_url',
         'mime_type',
         'size',
         'is_processed',
@@ -24,6 +25,7 @@ class VideoAsset extends Model
 
     protected $casts = [
         'is_processed' => 'boolean',
+        'release_at' => 'datetime',
     ];
 
     /*
@@ -34,7 +36,7 @@ class VideoAsset extends Model
 
     public function content()
     {
-        return $this->belongsTo(Content::class);
+        return $this->belongsTo(Content::class, 'content_id');
     }
 
     public function episode()

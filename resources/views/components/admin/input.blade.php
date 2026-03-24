@@ -1,14 +1,20 @@
+@props([
+'name',
+'label',
+'type' => 'text',
+'value' => ''
+])
+
 <div class="relative">
     <input
         type="{{ $type }}"
         name="{{ $name }}"
         id="{{ $name }}"
-        value="{{ old($name) }}"
+        value="{{ old($name, $value) }}"
         placeholder=" "
         class="peer w-full bg-zinc-900 border border-zinc-700 rounded
                px-3 pt-5 pb-2 text-white
-               focus:border-red-600 focus:outline-none"
-    >
+               focus:border-red-600 focus:outline-none">
 
     <label
         for="{{ $name }}"
@@ -23,6 +29,6 @@
     </label>
 
     @error($name)
-        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
     @enderror
 </div>

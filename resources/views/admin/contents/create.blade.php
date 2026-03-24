@@ -1,29 +1,40 @@
-@extends('admin.layout.app')
+@extends('admin.layouts.app')
 
 @section('title', 'Add Content')
 
 @section('content')
+<script>
+    window.initialSeasons = @json($seasonsJson ?? []);
+</script>
+<div class="max-w-full mx-auto p-6 text-white">
 
-    <div class="container mx-auto p-6 text-white">
+    <x-admin.page-header
+        title="Add Content"
+        description="Create a new movie or series for the OTT platform"
+        :breadcrumb="[
+        ['label' => 'Dashboard', 'url' => route('admin.dashboard')],
+        ['label' => 'Contents', 'url' => route('admin.contents.index')],
+        ['label' => 'Add Content']
+    ]" />
 
-        <h1 class="text-2xl font-semibold mb-6">Add Content</h1>
+    <x-admin.card>
 
-        <div class="bg-zinc-900 p-6 rounded-lg">
+        @include('admin.notifications.form_errors')
 
-            <form action="{{ route('admin.contents.store') }}" method="POST" enctype="multipart/form-data">
+        <form
+            action="{{ route('admin.contents.store') }}"
+            method="POST"
+            enctype="multipart/form-data"
+            onsubmit="NProgress.start()">
 
-                @csrf
+            @csrf
 
-                @include('admin.contents._form')
+            @include('admin.contents._form')
 
-                <button class="bg-red-600 px-6 py-2 rounded mt-4">
-                    Save Content
-                </button>
+        </form>
 
-            </form>
+    </x-admin.card>
 
-        </div>
-
-    </div>
+</div>
 
 @endsection
