@@ -1,4 +1,4 @@
-window.toast = function(message, icon = 'success') {
+window.toast = function(message, icon = 'success', seconds = 3000) {
 
     const colorMap = {
         success: 'text-green-400 outline-green-500/40',
@@ -13,7 +13,7 @@ window.toast = function(message, icon = 'success') {
         icon: icon,
         title: message,
         showConfirmButton: false,
-        timer: 3000,
+        timer: seconds,
         timerProgressBar: true,
         showClass: {
             popup: 'animate-toast-in'

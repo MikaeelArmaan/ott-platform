@@ -6,12 +6,13 @@
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 
-        {{-- GENRES (IMPORTANT) --}}
         <x-admin.select
             name="type"
             label="Type"
             select2
-            :options="['movie' => 'Movie', 'series' => 'Series']" />
+            x-model="type"
+            :options="['movie' => 'Movie', 'series' => 'Series']"
+            :value="old('type', optional($content)->type)" />
         {{-- TYPE --}}
         <!-- <x-admin.select name="type" label="Type">
             <option value="movie"

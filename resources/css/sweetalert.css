@@ -1,5 +1,7 @@
 /* Modal background */
-
+body.swal2-toast-shown .swal2-container{
+    width: 100% !important;
+}
 .swal-dark-popup {
     background: rgba(20, 20, 20, 0.35);
     backdrop-filter: blur(20px);
@@ -12,6 +14,10 @@
         0 10px 35px rgba(0, 0, 0, 0.7),
         0 0 10px rgba(229, 9, 20, 0.35),
         inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.swal2-toast,.swal-dark-popup{
+    width: 450px !important;
 }
 
 .modal-border-error {
@@ -45,6 +51,7 @@
 .swal2-container.swal2-backdrop-show {
     backdrop-filter: blur(4px);
     background: rgba(0, 0, 0, 0.55);
+    width: 100%;
 }
 
 /* Title */
@@ -81,3 +88,4 @@
 .swal-btn-cancel:hover {
     background: #3f3f46;
 }
+

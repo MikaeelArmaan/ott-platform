@@ -1,7 +1,6 @@
 import $ from "jquery";
 import select2 from "select2";
 
-// 🔥 attach plugin manually (THIS IS THE KEY)
 select2($);
 
 function initSelect2() {
@@ -13,11 +12,26 @@ function initSelect2() {
     $(".select2").each(function () {
         if ($(this).hasClass("select2-hidden-accessible")) return;
 
-        $(this).select2({
+        let $el = $(this);
+
+        $el.select2({
             width: "100%",
-            placeholder: $(this).data("placeholder") || "Select",
+            placeholder: $el.data("placeholder") || "Select",
             allowClear: true,
-            minimumResultsForSearch: Infinity // always show search
+            minimumResultsForSearch: Infinity,
+        });
+
+        // 🔥🔥🔥 CRITICAL PART (YOU WERE MISSING THIS)
+        $el.on("change", function () {
+            let value = $el.val();
+
+            // Sync with Alpine (x-model)
+            if (this._x_model) {
+                this._x_model.set(value);
+            }
+
+            // fallback (important for nested components)
+            this.dispatchEvent(new Event("input", { bubbles: true }));
         });
     });
 }

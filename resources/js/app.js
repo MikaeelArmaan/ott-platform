@@ -3,11 +3,9 @@ import Swal from 'sweetalert2';
 window.Swal = Swal;
 
 import Alpine from 'alpinejs';
-
 window.Alpine = Alpine;
 
-Alpine.start();
-// ✅ ADD THIS
+// ✅ LOAD ALL MODULES FIRST
 import './modules/hero-swiper';
 import './modules/hls-init';
 import './utils/toast';
@@ -19,4 +17,7 @@ import './modules/datatable-init';
 import './modules/content';
 import './modules/image-upload';
 import './modules/select2';
-import './modules/media-manager';
+import './modules/media-manager'; // 🔥 IMPORTANT
+
+// ✅ START ALPINE LAST
+Alpine.start();
