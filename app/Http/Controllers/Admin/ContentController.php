@@ -33,6 +33,102 @@ class ContentController extends Controller
         ]);
     }
 
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'type' => 'required|in:movie,series',
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'language' => 'nullable|string|max:50',
+            'release_date' => 'nullable|date',
+            'runtime_seconds' => 'nullable|integer',
+            'maturity_rating' => 'nullable|string|max:20',
+
+            'poster' => 'nullable|string',
+            'thumbnail' => 'nullable|string',
+            'backdrop' => 'nullable|string',
+            'video' => 'nullable|string',
+
+            'genres' => 'nullable|array',
+            'genres.*' => 'exists:genres,id',
+            'seasons' => 'nullable|string',
+            'user_id' => 'nullable|integer',
+        ]);
+
+        $data['is_published'] = $request->has('is_published');
+
+        DB::transaction(function () use ($request, $data) {
+
+            // 🔥 CREATE CONTENT
+            $content = Content::create([
+                'type' => $data['type'],
+                'title' => $data['title'],
+                'slug' => Str::slug($data['title']) . '-' . uniqid(),
+                'description' => $data['description'] ?? null,
+                'language' => $data['language'] ?? null,
+                'release_date' => $data['release_date'] ?? null,
+                'duration' => $data['runtime_seconds'] ?? null,
+                'maturity_rating' => $data['maturity_rating'] ?? null,
+                'poster_url' => $this->cleanPath($request->input('poster')),
+                'thumbnail_url' => $this->cleanPath($request->input('thumbnail')),
+                'backdrop_url' => $this->cleanPath($request->input('backdrop')),
+                'is_published' => $data['is_published'],
+                'user_id'      =>  $data['user_id']??auth()->user()->id(),
+            ]);
+
+            // 🔥 MAIN VIDEO (MOVIE)
+            if ($request->input('video')) {
+                $this->createVideoAsset(
+                    $content->id,
+                    null,
+                    $request->input('video'),
+                    'movie'
+                );
+            }
+
+            // 🔥 SEASONS
+            $seasonsData = json_decode($request->input('seasons', '[]'), true) ?? [];
+
+            foreach ($seasonsData as $seasonData) {
+
+                $season = $content->seasons()->create([
+                    'title' => $seasonData['title'] ?? '',
+                    'season_number' => (int) ($seasonData['season_number'] ?? 0),
+                ]);
+
+                foreach ($seasonData['episodes'] ?? [] as $epData) {
+
+                    $episode = $season->episodes()->create([
+                        'content_id' => $content->id,
+                        'title' => $epData['title'] ?? '',
+                        'description' => $epData['description'] ?? null,
+                        'duration' => isset($epData['duration']) ? (int) $epData['duration'] : null,
+                        'episode_number' => (int) ($epData['episode_number'] ?? 0),
+                        'thumbnail' => $this->cleanPath($epData['thumbnail'] ?? null),
+                    ]);
+
+                    if (!empty($epData['video'])) {
+                        $this->createVideoAsset(
+                            $content->id,
+                            $episode->id,
+                            $epData['video'],
+                            'episode'
+                        );
+                    }
+                }
+            }
+
+            // 🔥 GENRES
+            if ($request->has('genres')) {
+                $content->genres()->sync($request->genres);
+            }
+        });
+
+        return redirect()
+            ->route('admin.contents.index')
+            ->with('success', 'Content created successfully');
+    }
+
     public function edit(Content $content)
     {
         $content->load([

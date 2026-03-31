@@ -88,7 +88,7 @@ $bg = $content->backdrop_url
         @if($firstEpisode)
         <a href="{{ route('title.watch.episode',[$content->id,$firstEpisode->id]) }}"
           class="bg-red-600 hover:bg-red-700 px-6 py-3 rounded font-semibold">
-          ▶ Play Episode 1
+          ▶ Play
         </a>
         @endif
         @endif

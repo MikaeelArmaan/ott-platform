@@ -18,6 +18,8 @@ import './modules/content';
 import './modules/image-upload';
 import './modules/select2';
 import './modules/media-manager'; // 🔥 IMPORTANT
+import './modules/video-like';
+import './modules/video-share';
 
 // ✅ START ALPINE LAST
 Alpine.start();

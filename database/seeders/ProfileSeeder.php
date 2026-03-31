@@ -15,7 +15,7 @@ class ProfileSeeder extends Seeder
         foreach ($users as $user) {
 
             // Only consumers get profiles
-            if ($user->isConsumer()) {
+            //if ($user->isConsumer() || $user->isAdmin()) {
 
                 // Avoid duplicate profile
                 if ($user->profiles()->count() === 0) {
@@ -29,7 +29,7 @@ class ProfileSeeder extends Seeder
 
                     $this->command->info("Profile created for {$user->email}");
                 }
-            }
+            //}
         }
     }
 }

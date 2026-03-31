@@ -41,7 +41,14 @@ $hlsUrl = videoUrl($hlsPath);
 }
 }
 
-$profileId = auth()->user()?->profiles()->first()?->id;
+$profile = auth()->user()?->profiles()->first();
+$profileId = $profile?->id;
+
+$inWatchlist = $profile
+? $profile->watchlist()
+->where('content_id', $content->id)
+->exists()
+: false;
 @endphp
 
 <div class="bg-black min-h-screen text-white">
@@ -51,30 +58,25 @@ $profileId = auth()->user()?->profiles()->first()?->id;
             {{-- PLAYER --}}
             <div class="lg:col-span-8">
 
-                <div class="relative bg-black rounded-xl overflow-hidden shadow-2xl">
-
-                    {{-- LOADER --}}
-                    <div id="loadingOverlay"
-                        class="absolute inset-0 flex items-center justify-center bg-black/70 z-20">
-                        <div class="animate-spin w-6 h-6 border-2 border-white border-t-transparent rounded-full"></div>
-                    </div>
+                <div class="relative bg-black rounded-2xl overflow-hidden shadow-2xl">
 
                     {{-- VIDEO --}}
                     <video
                         id="player"
                         class="w-full aspect-video bg-black"
                         controls
-                        playsinline
-                        preload="metadata">
+                        playsinline>
                     </video>
 
-                    {{-- SKIP INTRO --}}
-                    <button
-                        id="skipIntro"
-                        class="hidden absolute bottom-24 right-6 z-20 bg-white/10 backdrop-blur
-                               hover:bg-white/20 text-white text-sm px-4 py-2 rounded-full transition">
-                        ⏭ Skip Intro
-                    </button>
+                    {{-- LOADER --}}
+                    <div id="loadingOverlay"
+                        class="absolute inset-0 flex items-center justify-center bg-black/70 z-20">
+                        <div class="animate-spin w-8 h-8 border-2 border-white border-t-transparent rounded-full"></div>
+                    </div>
+
+                    {{-- GRADIENT OVERLAY --}}
+                    <div class="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/80 to-transparent"></div>
+
                 </div>
 
                 {{-- TITLE + META --}}
@@ -100,7 +102,30 @@ $profileId = auth()->user()?->profiles()->first()?->id;
                         <span class="text-gray-400">• {{ $episode->title }}</span>
                         @endif
                     </h1>
+                    <div class="flex items-center gap-3 mt-3">
 
+                        <div class="w-8 h-8 rounded-full overflow-hidden bg-red-800 flex items-center justify-center">
+
+                            @if($content->user && $content->user->avatar)
+                            <img
+                                src="{{ asset('storage/' . $content->user->avatar) }}"
+                                class="w-full h-full object-cover">
+                            @else
+                            <span class="text-xs font-semibold text-white">
+                                {{ strtoupper(substr($content->user->name ?? 'U', 0, 1)) }}
+                            </span>
+                            @endif
+
+                        </div>
+
+                        <div class="text-sm">
+                            <div class="text-gray-400">Uploaded by</div>
+                            <div class="font-semibold">
+                                {{ $content->user->name ?? 'OTT Studio' }}
+                            </div>
+                        </div>
+
+                    </div>
                     {{-- META ROW (YEAR • DURATION • GENRES) --}}
                     <div class="text-sm text-gray-400 flex flex-wrap items-center gap-2">
 
@@ -148,6 +173,7 @@ $profileId = auth()->user()?->profiles()->first()?->id;
                         @endforeach
 
                     </div>
+
                     {{-- TAG CHIPS --}}
                     @if($content->genres && $content->genres->count())
                     <div class="flex flex-wrap gap-2 mt-2">
@@ -167,18 +193,59 @@ $profileId = auth()->user()?->profiles()->first()?->id;
                 </div>
 
                 {{-- ACTIONS --}}
-                <div class="flex items-center gap-4 mt-4 text-sm">
-                    <button class="bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded">
-                        👍 Like
+                <div class="flex flex-wrap items-center gap-3 mt-5">
+
+                    {{-- LIKE --}}
+                    <button
+                        id="likeBtn"
+                        data-id="{{ $asset?->id }}"
+                        class="bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded flex items-center gap-2 transition">
+
+                        <span id="likeIcon">👍</span>
+
+                        <span id="likeText">Like</span>
+
+                        <span id="likeCount" class="text-gray-400 text-sm">
+                            {{ $asset->likes_count ?? 0 }}
+                        </span>
+
                     </button>
 
-                    <button class="bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded">
+                    {{-- SHARE --}}
+                    <button
+                        id="shareBtn"
+                        class="bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded flex items-center gap-2">
+
                         🔗 Share
                     </button>
 
-                    <button class="bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded">
+                    {{-- WATCHLIST (keep your existing logic later) --}}
+                    <form class="watchlist-form inline-flex" data-content-id="{{ $content->id }}">
+                        @csrf
+
+                        <input type="hidden" name="content_id" value="{{ $content->id }}">
+
+                        <button type="button"
+                            class="watchlist-btn bg-neutral-800 hover:bg-neutral-700
+               px-4 py-2 rounded flex items-center gap-2">
+
+                            <span class="watchlist-icon text-lg font-semibold 
+    {{ $inWatchlist ? 'text-green-400' : 'text-white' }}">
+                                {{ $inWatchlist ? '✓' : '➕' }}
+                            </span>
+
+                            <span class="text-sm">
+                                {{ $inWatchlist ? 'In Watchlist' : 'Add to Watchlist' }}
+                            </span>
+                        </button>
+                    </form>
+                    <!-- <button
+                        id="watchlistBtn"
+                        class="bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded">
+
                         ➕ Watchlist
-                    </button>
+                    </button> -->
+
                 </div>
 
                 {{-- DESCRIPTION --}}
@@ -205,20 +272,16 @@ $profileId = auth()->user()?->profiles()->first()?->id;
 
                     <a
                         href="{{ route('title.watch.episode', [$content->id, $ep->id]) }}"
-                        class="flex gap-3 p-2 rounded transition
-                            @if(isset($episode) && $episode->id === $ep->id)
-                                bg-white/10 border border-white/10
-                            @else
-                                hover:bg-white/5
-                            @endif">
+                        class="flex gap-3 p-2 rounded-lg transition group
+        {{ isset($episode) && $episode->id === $ep->id ? 'bg-white/10 border border-white/10' : 'hover:bg-white/5' }}">
 
                         <img
                             src="{{ asset('storage/' . ($ep->thumbnail ?? '')) }}"
-                            class="w-28 h-16 object-cover rounded"
-                            alt="{{ $ep->title }}">
+                            class="w-28 h-16 object-cover rounded">
 
                         <div class="text-sm">
-                            <div class="font-semibold">
+
+                            <div class="font-semibold group-hover:text-white">
                                 S{{ $ep->season?->season_number ?? 1 }}
                                 • E{{ $ep->episode_number }} - {{ $ep->title }}
                             </div>
@@ -226,6 +289,7 @@ $profileId = auth()->user()?->profiles()->first()?->id;
                             <div class="text-gray-400 text-xs line-clamp-2">
                                 {{ \Illuminate\Support\Str::limit($ep->description, 80) }}
                             </div>
+
                         </div>
 
                     </a>
@@ -267,6 +331,30 @@ $profileId = auth()->user()?->profiles()->first()?->id;
         </div>
     </div>
 </div>
+
+<div id="shareModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+    <div class="bg-zinc-900 p-6 rounded space-y-4 text-center">
+
+        <h3 class="text-white font-semibold">Share</h3>
+
+        <div class="flex gap-4 justify-center">
+
+            <a id="whatsappShare" target="_blank" class="bg-green-600 px-4 py-2 rounded">WhatsApp</a>
+
+            <a id="twitterShare" target="_blank" class="bg-blue-500 px-4 py-2 rounded">Twitter</a>
+
+            <button id="copyLink" class="bg-gray-700 px-4 py-2 rounded">Copy Link</button>
+
+        </div>
+
+        <button onclick="document.getElementById('shareModal').classList.add('hidden')"
+            class="text-gray-400 text-sm mt-2">
+            Close
+        </button>
+
+    </div>
+</div>
+
 
 {{-- NEXT EPISODE --}}
 <div id="nextEpisodePopup"

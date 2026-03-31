@@ -21,20 +21,29 @@
 
         @include('admin.notifications.form_errors')
 
-        <form
-            action="{{ route('admin.contents.store') }}"
-            method="POST"
-            enctype="multipart/form-data"
-            onsubmit="NProgress.start()">
+        <div
+            x-data="contentWizard(
+            '{{ $content->type ?? 'movie' }}',
+            window.initialSeasons || []
+        )"
+            x-cloak
+            class="space-y-6">
 
-            @csrf
+            <form
+                action="{{ route('admin.contents.store') }}"
+                method="POST"
+                enctype="multipart/form-data"
+                @submit.prevent="submitForm">
 
-            @include('admin.contents._form')
+                @csrf
 
-        </form>
+                @include('admin.contents._form')
+
+            </form>
+
+        </div>
 
     </x-admin.card>
-
 </div>
 
 @endsection

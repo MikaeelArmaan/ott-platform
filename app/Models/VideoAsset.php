@@ -43,4 +43,9 @@ class VideoAsset extends Model
     {
         return $this->belongsTo(Episode::class);
     }
+
+    public function likes()
+    {
+        return $this->hasMany(Like::class);
+    }
 }
