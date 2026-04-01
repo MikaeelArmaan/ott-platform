@@ -1,0 +1,55 @@
+services:
+  app:
+    build: .
+    container_name: ott_app
+    volumes:
+      - .:/var/www
+      - /var/www/node_modules 
+    depends_on:
+      - db
+    networks:
+      - ott_network
+
+  nginx:
+    image: nginx:alpine
+    container_name: ott_nginx
+    ports:
+      - "8000:80"
+    volumes:
+      - .:/var/www
+      - ./docker/nginx:/etc/nginx/conf.d
+    depends_on:
+      - app
+    networks:
+      - ott_network
+
+  db:
+    image: mysql:8.0
+    container_name: ott_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ott_platform
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3307:3306"
+    volumes:
+      - dbdata:/var/lib/mysql
+    networks:
+      - ott_network
+
+  queue:
+    build: .
+    container_name: ott_queue
+    command: php artisan queue:work --tries=3 --timeout=90
+    volumes:
+      - .:/var/www
+    depends_on:
+      - db
+    networks:
+      - ott_network
+
+networks:
+  ott_network:
+
+volumes:
+  dbdata:
