@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\ContentController;
 use App\Http\Controllers\Admin\MediaController;
 use App\Http\Controllers\Admin\UploadController;
 use App\Http\Controllers\Web\BrowseController;
+use App\Http\Controllers\Web\VideoController;
 use App\Http\Controllers\Web\WatchlistController;
 
 /*
@@ -49,6 +50,11 @@ Route::middleware(['auth', 'consumer'])->group(function () {
 
     Route::get('/watch/{content}/episode/{episode}', [BrowseController::class, 'watchEpisode'])
         ->name('title.watch.episode');
+
+    Route::prefix('video-assets')->group(function () {
+        Route::post('/{videoAsset}/like', [VideoController::class, 'toggleLike'])
+            ->name('like.toggle');
+    });
 });
 
 

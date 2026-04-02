@@ -67,14 +67,9 @@ $(document).on("change", ".content-toggle", function () {
 */
 window.contentWizard = function (type = "movie", initialSeasons = []) {
     return {
-        type: type,
+        type,
         step: 1,
 
-        /*
-        |--------------------------------------------------------------------------
-        | INITIALIZE DATA
-        |--------------------------------------------------------------------------
-        */
         seasons: (initialSeasons || []).map((s) => ({
             ...s,
             episodes: (s.episodes || []).map((ep) => ({
@@ -82,15 +77,20 @@ window.contentWizard = function (type = "movie", initialSeasons = []) {
                 open: false,
                 preview: false,
                 thumbnail_preview: null,
-                video_preview: null,
+                value: ep.video
+                    ? ep.video.startsWith("http")
+                        ? ep.video
+                        : `/storage/${ep.video}`
+                    : null,
+                video_preview: ep.video
+                    ? ep.video.startsWith("http")
+                        ? ep.video
+                        : `/storage/${ep.video}`
+                    : null,
+                is_processed: ep.is_processed ?? true,
             })),
         })),
 
-        /*
-        |--------------------------------------------------------------------------
-        | STEPS
-        |--------------------------------------------------------------------------
-        */
         steps() {
             return this.type === "movie"
                 ? ["Content", "Media", "Video", "Publish"]
@@ -105,11 +105,6 @@ window.contentWizard = function (type = "movie", initialSeasons = []) {
             if (this.step > 1) this.step--;
         },
 
-        /*
-        |--------------------------------------------------------------------------
-        | SEASONS
-        |--------------------------------------------------------------------------
-        */
         addSeason() {
             this.seasons.push({
                 id: null,
@@ -124,11 +119,6 @@ window.contentWizard = function (type = "movie", initialSeasons = []) {
             this.reindexSeasons();
         },
 
-        /*
-        |--------------------------------------------------------------------------
-        | EPISODES
-        |--------------------------------------------------------------------------
-        */
         addEpisode(seasonIndex) {
             this.seasons[seasonIndex].episodes.push({
                 id: null,
@@ -136,23 +126,20 @@ window.contentWizard = function (type = "movie", initialSeasons = []) {
                 description: "",
                 runtime: "",
                 episode_number: this.seasons[seasonIndex].episodes.length + 1,
+                thumbnail: null,
+                thumbnail_preview: null,
+                video: null,
+                video_preview: null,
+                is_processed: false,
                 open: true,
                 preview: false,
             });
         },
+
         previewImage(event, ep) {
             const file = event.target.files[0];
             if (!file) return;
-
             ep.thumbnail_preview = URL.createObjectURL(file);
-        },
-
-        previewVideo(event, ep) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            ep.video_preview = URL.createObjectURL(file);
-            ep.preview = true; // auto open preview
         },
 
         removeEpisode(seasonIndex, episodeIndex) {
@@ -160,11 +147,6 @@ window.contentWizard = function (type = "movie", initialSeasons = []) {
             this.reindexEpisodes(seasonIndex);
         },
 
-        /*
-        |--------------------------------------------------------------------------
-        | REINDEX (IMPORTANT)
-        |--------------------------------------------------------------------------
-        */
         reindexSeasons() {
             this.seasons.forEach((season, i) => {
                 season.season_number = i + 1;
@@ -177,62 +159,106 @@ window.contentWizard = function (type = "movie", initialSeasons = []) {
             });
         },
 
-        /*
-        |--------------------------------------------------------------------------
-        | SORTABLE - SEASONS
-        |--------------------------------------------------------------------------
-        */
         initSeasonSortable(el) {
             new Sortable(el, {
                 animation: 200,
                 handle: ".drag-handle",
-
                 onEnd: (evt) => {
-                    let moved = this.seasons.splice(evt.oldIndex, 1)[0];
+                    const moved = this.seasons.splice(evt.oldIndex, 1)[0];
                     this.seasons.splice(evt.newIndex, 0, moved);
-
                     this.reindexSeasons();
                 },
             });
         },
 
-        /*
-        |--------------------------------------------------------------------------
-        | SORTABLE - EPISODES
-        |--------------------------------------------------------------------------
-        */
         initEpisodeSortable(el, seasonIndex) {
             new Sortable(el, {
                 animation: 200,
                 handle: ".drag-handle",
-
                 onEnd: (evt) => {
-                    let list = this.seasons[seasonIndex].episodes;
-
-                    let moved = list.splice(evt.oldIndex, 1)[0];
+                    const list = this.seasons[seasonIndex].episodes;
+                    const moved = list.splice(evt.oldIndex, 1)[0];
                     list.splice(evt.newIndex, 0, moved);
-
                     this.reindexEpisodes(seasonIndex);
                 },
             });
         },
 
+        async forceSync() {
+            // 🔥 WAIT FOR ALPINE TO FINISH UPDATES
+            await this.$nextTick();
+
+            const cleaned = this.cleanSeasons();
+
+            if (this.$refs.seasonsInput) {
+                this.$refs.seasonsInput.value = cleaned;
+            }
+
+            return true;
+        },
+        async submitForm() {
+            
+            await this.forceSync();
+            // 🔥 NOW submit form safely
+            this.$el.submit();
+        },
+        handleMedia(event) {
+            const { target, path, url } = event.detail;
+            if (!target) return;
+
+            const [type, sIndex, eIndex] = target.split("-");
+
+            const s = parseInt(sIndex);
+            const e = parseInt(eIndex);
+
+            if (isNaN(s) || isNaN(e)) return;
+
+            const episode = this.seasons[s]?.episodes[e];
+            if (!episode) return;
+            
+            if (type === "video") {
+                episode.video = path;
+                episode.video_preview = url;
+            }
+
+            if (type === "thumb") {
+                episode.thumbnail = path;
+                episode.thumbnail_preview = url;
+            }
+        },
         cleanSeasons() {
             return JSON.stringify(
-                this.seasons.map((season) => ({
-                    id: season.id,
-                    name: season.name,
-                    season_number: season.season_number,
+                this.seasons
+                    .map((season, sIndex) => {
+                        const episodes = (season.episodes || [])
+                            .filter((ep) => {
+                                // ✅ keep only valid episodes
+                                return ep.title || ep.video;
+                            })
+                            .map((ep, eIndex) => ({
+                                episode_number: eIndex + 1,
+                                title: ep.title || null,
+                                description: ep.description || null,
 
-                    episodes: season.episodes.map((ep) => ({
-                        id: ep.id,
-                        title: ep.title,
-                        description: ep.description,
-                        runtime: ep.runtime,
-                        episode_number: ep.episode_number,
-                        // ❌ DO NOT SEND preview / blob fields
-                    })),
-                })),
+                                // ✅ FIXED FIELD
+                                duration: ep.runtime || null,
+
+                                release_date: ep.release_date || null,
+
+                                video: ep.video || null,
+                                thumbnail: ep.thumbnail || null,
+                            }));
+
+                        // ❌ skip empty seasons
+                        if (!episodes.length) return null;
+
+                        return {
+                            season_number: sIndex + 1,
+                            title: season.name || null,
+                            episodes,
+                        };
+                    })
+                    .filter(Boolean), // remove null seasons
             );
         },
     };

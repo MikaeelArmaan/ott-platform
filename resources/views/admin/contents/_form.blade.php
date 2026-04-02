@@ -1,9 +1,4 @@
 <div
-    x-cloak
-    x-data="contentWizard(
-        '{{ $content->type ?? 'movie' }}',
-        {{ json_encode($seasonsJson ?? []) }}
-    )"
     class="space-y-6">
 
     @include('admin.contents.wizard.steps')

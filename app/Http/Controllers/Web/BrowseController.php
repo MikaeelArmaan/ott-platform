@@ -198,7 +198,8 @@ class BrowseController extends Controller
 
         $content->load([
             'videoAsset',
-            'seasons.episodes.videoAsset'
+            'seasons.episodes.videoAsset',
+            'user',
         ]);
 
         if ($episode) {
@@ -239,6 +240,7 @@ class BrowseController extends Controller
         $hlsUrl = null;
 
         if ($asset) {
+            $asset->loadCount('likes');
 
             if ($asset->path) {
                 $mp4Url = asset('storage/' . $asset->path);

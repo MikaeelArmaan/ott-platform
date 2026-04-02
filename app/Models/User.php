@@ -80,7 +80,7 @@ class User extends Authenticatable
     {
         return $this->hasPermission($permission);
     }
-    
+
     public function watchlist()
     {
         return $this->belongsToMany(
@@ -92,5 +92,10 @@ class User extends Authenticatable
     public function profiles()
     {
         return $this->hasMany(Profile::class);
+    }
+
+    public function contents()
+    {
+        return $this->hasMany(Content::class);
     }
 }

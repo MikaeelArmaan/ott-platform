@@ -11,6 +11,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class ConvertVideoToHls implements ShouldQueue
 {
@@ -20,6 +21,10 @@ class ConvertVideoToHls implements ShouldQueue
 
     public function handle(): void
     {
+        Log::info('HLS Job started', [
+            'asset_id' => $this->videoAssetId
+        ]);
+
         $asset = VideoAsset::findOrFail($this->videoAssetId);
 
         $src = Storage::disk('public')->path($asset->path);
@@ -29,10 +34,14 @@ class ConvertVideoToHls implements ShouldQueue
                 'status' => 'failed',
                 'error' => 'Source file not found'
             ]);
+
+            Log::error('Source file missing', [
+                'path' => $asset->path
+            ]);
+
             return;
         }
 
-        // Normalize paths (IMPORTANT for Windows)
         $src = str_replace('\\', '/', $src);
 
         $baseRel = $asset->episode_id
@@ -46,12 +55,16 @@ class ConvertVideoToHls implements ShouldQueue
             mkdir($outAbs, 0777, true);
         }
 
-        // cleanup
+        // Cleanup old HLS
         foreach (glob($outAbs . '/*') as $file) {
             if (is_file($file)) unlink($file);
         }
 
         $asset->update(['status' => 'processing']);
+
+        Log::info('FFmpeg processing started', [
+            'output_dir' => $baseRel
+        ]);
 
         $cmd = sprintf(
             'ffmpeg -y -i %s -filter_complex ' .
@@ -76,29 +89,46 @@ class ConvertVideoToHls implements ShouldQueue
 
         exec($cmd . ' 2>&1', $output, $code);
 
-        \Log::error('FFMPEG DEBUG', [
-            'cmd' => $cmd,
-            'output' => $output,
+        Log::info('FFmpeg finished', [
             'code' => $code
         ]);
 
-        // HARD validation
+        Log::debug('FFmpeg output', $output);
+
         if ($code !== 0 || !file_exists($outAbs . '/master.m3u8')) {
+
             $asset->update([
                 'status' => 'failed',
                 'error' => implode("\n", $output)
             ]);
+
+            Log::error('HLS generation failed', [
+                'asset_id' => $asset->id
+            ]);
+
             return;
         }
 
+        // Duration
         $duration = shell_exec(
             "ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 " . escapeshellarg($src)
         );
+
+        $duration = (int) round($duration);
+
+        // ✅ IMPORTANT FIX
         $asset->update([
             'status' => 'ready',
+            'is_processed' => true, // 🔥 REQUIRED FOR UI
             'hls_master_url' => "{$baseRel}/master.m3u8",
-            'duration' => (int) round($duration)
+            'duration' => $duration
         ]);
+
+        Log::info('HLS completed successfully', [
+            'asset_id' => $asset->id,
+            'duration' => $duration
+        ]);
+
         if ($asset->episode_id) {
             Episode::where('id', $asset->episode_id)
                 ->update(['duration' => $duration]);
@@ -107,8 +137,7 @@ class ConvertVideoToHls implements ShouldQueue
                 ->update(['duration' => $duration]);
         }
 
-        if ($asset->path) {
-            Storage::disk('public')->delete($asset->path);
-        }
+        // ❌ REMOVED THIS (VERY IMPORTANT)
+        // Storage::disk('public')->delete($asset->path);
     }
 }

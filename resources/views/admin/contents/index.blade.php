@@ -55,26 +55,25 @@
                     </tr>
 
                 </x-slot>
-
-
                 <x-slot name="foot">
-
                     <tr>
 
-                        <th>ID</th>
-                        <th></th>
-                        <th>Title</th>
-                        <th>Type</th>
-                        <th>Seasons</th>
-                        <th>Episodes</th>
-                        <th>Rating</th>
-                        <th></th>
-                        <th></th>
-                        <th></th>
-                        <th></th>
-                        <th></th>
+                        <th class="p-3 text-left"></th>
+                        <th class="p-3 w-16"></th>
+                        <th class="p-3 text-left">Title</th>
+                        <th class="p-3">Type</th>
+                        <th class="p-3">Seasons</th>
+                        <th class="p-3">Episodes</th>
+                        <th class="p-3">Rating</th>
+                        <th class="p-3"></th>
+                        <th class="p-3"></th>
+                        <th class="p-3"></th>
+                        <th class="p-3"></th>
+                        <th class="p-3"></th>
+                        <th class="p-3"></th>
 
                     </tr>
+
 
                 </x-slot>
 

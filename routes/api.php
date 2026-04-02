@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\PlaybackController;
 use App\Http\Controllers\Api\V1\WatchlistController;
 use App\Http\Controllers\Api\V1\WatchHistoryController;
 use App\Http\Controllers\Api\V1\Admin\ContentController;
+use App\Http\Controllers\Web\VideoController;
 
 /*
 |--------------------------------------------------------------------------
@@ -51,6 +52,11 @@ Route::prefix('v1')->group(function () {
             Route::get('/', [WatchlistController::class, 'index']);
             Route::post('/', [WatchlistController::class, 'store']);
             Route::delete('/{content}', [WatchlistController::class, 'destroy']);
+        });
+
+        Route::prefix('video-assets')->group(function () {
+            Route::post('/{videoAsset}/like', [VideoController::class, 'toggleLike'])
+                ->name('like.toggle');
         });
 
         Route::middleware('permission:upload_content')->group(function () {

@@ -10,11 +10,20 @@
 
     <h1 class="text-2xl font-semibold mb-6">Edit Content</h1>
 
-    <div class="bg-zinc-900 p-6 rounded-lg">
+    <div class="bg-zinc-900 p-6 rounded-lg" 
+        x-cloak
+        x-ref="root"
+        x-data="contentWizard(
+        '{{ $content->type ?? 'movie' }}',
+        @js($seasonsJson ?? []))"
+        >
 
-        <form method="POST"
+        <form
             action="{{ route('admin.contents.update', $content->id) }}"
-            enctype="multipart/form-data">
+            method="POST"
+            enctype="multipart/form-data"
+            @submit.prevent="submitForm"
+            >
             @csrf
             @method('PUT')
 

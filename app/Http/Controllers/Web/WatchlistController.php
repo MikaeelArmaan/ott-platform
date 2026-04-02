@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\Like;
 use Illuminate\Http\Request;
 
 class WatchlistController extends Controller
@@ -29,14 +30,13 @@ class WatchlistController extends Controller
 
         $profile = auth()->user()->profiles()->first();
 
-        if ($profile->watchlist()->where('content_id',$request->content_id)->exists()) {
+        if ($profile->watchlist()->where('content_id', $request->content_id)->exists()) {
 
             $profile->watchlist()->detach($request->content_id);
 
             return response()->json([
                 'status' => 'removed'
             ]);
-
         } else {
 
             $profile->watchlist()->attach($request->content_id);

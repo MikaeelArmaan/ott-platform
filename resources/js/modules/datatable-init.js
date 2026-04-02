@@ -1,61 +1,33 @@
+import $ from "jquery";
+import "datatables.net-dt";
+
+window.$ = window.jQuery = $;
+
 $(document).ready(function () {
     $(".datatable").each(function () {
         let tableId = $(this).attr("id");
+        if (!tableId) return;
+
+        let selector = "#" + tableId;
 
         let pageLength = $(this).data("page-length") || 10;
-        let orderColumn = $(this).data("order-column") || 0;
-        let orderDir = $(this).data("order-dir") || "desc";
-
-        if ($.fn.DataTable.isDataTable("#" + tableId)) {
-            $("#" + tableId)
-                .DataTable()
-                .destroy();
-        }
-
-        const table = $("#" + tableId).DataTable({
+        let orderColumn = $(this).data("order-column") ||0;
+        let orderDir = $(this).data("order-dir") || "asc";
+        
+        const table = $(selector).DataTable({
             processing: true,
             pageLength: pageLength,
             order: [[orderColumn, orderDir]],
-
-            responsive: {
-                details: {
-                    type: "column",
-                    target: 0,
-                },
+            language: {
+                search: "", // remove "Search:" label
+                searchPlaceholder: "Enter search...",
             },
-
+            dom: '<"dt-top flex justify-between items-center mb-4"lf>rtip',
+            responsive: true,
             autoWidth: false,
             lengthChange: true,
-            scrollX: true,
-
-            columnDefs: [{ orderable: false, targets: [-1, -2] }],
+            columnDefs: [{ orderable: false, targets: [-1] }],
         });
-
-        /*
-        COLUMN SEARCH
-        */
-
-        if ($("#" + tableId + " tfoot").length) {
-            $("#" + tableId + " tfoot th").each(function () {
-                let title = $(this).text();
-
-                if (title !== "") {
-                    $(this).html(
-                        '<input type="text" placeholder="Search ' +
-                            title +
-                            '" class="datatable-filter w-full px-2 py-1 bg-zinc-800 border border-zinc-700 rounded text-xs"/>',
-                    );
-                }
-            });
-
-            table.columns().every(function () {
-                let column = this;
-
-                $("input", this.footer()).on("keyup change", function () {
-                    column.search(this.value).draw();
-                });
-            });
-        }
     });
 });
 /*
@@ -64,9 +36,6 @@ DELETE CONFIRMATION
 $(document).on("click", ".delete-btn", function (e) {
     e.preventDefault();
     e.stopPropagation(); // IMPORTANT
-
-    console.log("delete clicked");
-
     const form = $(this).closest("form");
 
     Swal.fire({
@@ -76,7 +45,7 @@ $(document).on("click", ".delete-btn", function (e) {
         showCancelButton: true,
         confirmButtonColor: "#dc2626",
         confirmButtonText: "Delete",
-        
+
         customClass: {
             popup: "swal-dark-popup modal-border-error",
             title: "swal-dark-title",

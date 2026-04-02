@@ -123,4 +123,9 @@ class Content extends Model
             'genre_id'
         )->withTimestamps();
     }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -72,6 +73,8 @@ class ContentFactory extends Factory
             'is_trending' => $this->faker->boolean(30),
 
             'is_published' => true,
+
+            'user_id' => User::inRandomOrder()->value('id'),
 
             'published_at' => now(),
         ];
