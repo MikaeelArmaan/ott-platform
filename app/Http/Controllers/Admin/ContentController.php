@@ -73,7 +73,7 @@ class ContentController extends Controller
                 'thumbnail_url' => $this->cleanPath($request->input('thumbnail')),
                 'backdrop_url' => $this->cleanPath($request->input('backdrop')),
                 'is_published' => $data['is_published'],
-                'user_id'      =>  $data['user_id']??auth()->user()->id(),
+                'user_id'      =>  $data['user_id'] ?? auth()->user()->id(),
             ]);
 
             // 🔥 MAIN VIDEO (MOVIE)
@@ -350,5 +350,57 @@ class ContentController extends Controller
         $path = str_replace('\\', '/', $path);
 
         return preg_replace('#^https?://[^/]+/storage/#', '', $path);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | GENERIC TOGGLE (PUBLISH / FEATURED / TRENDING / RECOMMENDED)
+    |--------------------------------------------------------------------------
+    */
+    public function togglePublish(Request $request, Content $content)
+    {
+        $allowed = [
+            'is_published',
+            'is_featured',
+            'is_trending',
+            'is_recommended',
+        ];
+
+        $field = $request->input('field');
+        $value = $request->boolean('value');
+
+        if (!in_array($field, $allowed)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid field'
+            ], 422);
+        }
+
+        // update
+        $content->{$field} = $value;
+
+        if ($field === 'is_published') {
+            $content->published_at = $value ? now() : null;
+        }
+        $content->save();
+
+        // 🔥 human readable labels
+        $labels = [
+            'is_published'   => 'Published',
+            'is_featured'    => 'Featured',
+            'is_trending'    => 'Trending',
+            'is_recommended' => 'Recommended',
+        ];
+        $label = $labels[$field] ?? ucfirst(str_replace('_', ' ', $field));
+        // 🔥 dynamic message
+        $message = $value
+            ? "{$content->title} marked as {$label}"
+            : "{$label} removed from {$content->title}";
+        return response()->json([
+            'success' => true,
+            'field'   => $field,
+            'value'   => $value,
+            'message' => $message
+        ]);
     }
 }
