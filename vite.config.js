@@ -8,7 +8,14 @@ export default defineConfig({
             refresh: true,
         }),
     ],
-
+    server: {
+        host: '0.0.0.0',   // 🔥 REQUIRED
+        port: 5173,
+        strictPort: true,
+        hmr: {
+            host: 'localhost',
+        }
+    },
     optimizeDeps: {
         include: ["jquery", "select2"],
     },
